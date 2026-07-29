@@ -8,14 +8,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Arcade Vault ("arcade-vault") — a platform for playing games online and competing for points. The codebase is currently the unmodified `create-next-app` scaffold (App Router, TypeScript, Tailwind v4); no game/vault features have been built yet.
 
-## Commands
+## Skills
 
-- `npm run dev` — start the dev server
-- `npm run build` — production build
-- `npm run start` — serve the production build
-- `npm run lint` — ESLint (flat config, `eslint.config.mjs`)
-
-There is no test runner configured yet.
+Usa siempre /frontend-design para diseñar la interfaz de usuario.
 
 ## Stack notes
 

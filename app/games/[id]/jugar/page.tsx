@@ -61,7 +61,7 @@ export default function GamePlayerPage() {
           <button className="btn magenta" onClick={endGame}>
             FIN
           </button>
-          <Link href={`/juego/${game.id}`} className="btn ghost">
+          <Link href={`/games/${game.id}`} className="btn ghost">
             SALIR
           </Link>
         </div>

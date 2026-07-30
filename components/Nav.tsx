@@ -9,7 +9,7 @@ export default function Nav() {
   const [open, setOpen] = useState(false);
 
   const isActive = (name: "biblioteca" | "salon" | "auth") => {
-    if (name === "biblioteca") return pathname === "/" || pathname.startsWith("/juego");
+    if (name === "biblioteca") return pathname === "/" || pathname.startsWith("/games");
     if (name === "salon") return pathname === "/salon";
     return pathname === "/auth";
   };

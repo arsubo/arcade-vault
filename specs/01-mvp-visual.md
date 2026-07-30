@@ -1,6 +1,6 @@
 # SPEC 01 — MVP visual de Arcade Vault
 
-> **Status:** Draft
+> **Status:** Aprobado
 > **Depends on:** —
 > **Date:** 2026-07-29
 > **Objective:** Portar las 5 pantallas del prototipo estático en `references/templates/` (biblioteca, detalle, reproductor, auth, salón de la fama) a rutas reales de Next.js App Router en TypeScript, reproduciendo el diseño y las interacciones locales tal cual, sin implementar lógica de juego real ni persistencia entre sesiones.

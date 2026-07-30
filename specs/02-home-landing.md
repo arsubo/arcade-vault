@@ -1,6 +1,6 @@
 # SPEC 02 — Home (landing) y reubicación de Biblioteca
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** 01-mvp-visual
 > **Date:** 2026-07-30
 > **Objective:** Portar la landing de marketing (`home.jsx`) del prototipo en `references/templates/home-about/` a la ruta `/` de Next.js App Router, moviendo la Biblioteca actual de `/` a `/biblioteca` y actualizando el Nav compartido con los enlaces "Inicio" y "Acerca de", sin implementar todavía la página Acerca de (`about.jsx`) ni corregir los enlaces internos existentes que hoy asumen que `/` es la Biblioteca.
@@ -64,23 +64,23 @@ No se agrega ninguna otra estructura, store o estado global.
 
 ## Acceptance criteria
 
-- [ ] `npm run build` compila sin errores de TypeScript ni de ESLint.
-- [ ] `/` muestra la nueva landing de Home: hero con silhouettes flotantes, sección "¿Por qué Arcade Vault?", riel de juegos, stats, "Actividad en vivo", precios y CTA final.
-- [ ] El botón "▶ EXPLORAR JUEGOS" del hero de Home navega a `/biblioteca`.
-- [ ] El botón "✦ CREAR CUENTA" del hero de Home navega a `/auth`.
-- [ ] El riel "JUEGOS DISPONIBLES AHORA" muestra exactamente los primeros 6 juegos de `GAMES` y cada `MiniCard` enlaza a `/games/[id]`.
-- [ ] El botón "VER TODOS LOS JUEGOS →" navega a `/biblioteca`.
-- [ ] El botón "VER SALÓN →" de la sección "Actividad en vivo" navega a `/salon`.
-- [ ] El botón "EMPEZAR GRATIS →" de la sección de precios y el CTA final "INSERTAR MONEDA →" navegan a `/auth` y `/biblioteca` respectivamente, igual que en `home.jsx`.
-- [ ] Las secciones marcadas `reveal` aplican su animación de aparición al hacer scroll (se les agrega la clase `in` al entrar en el viewport).
-- [ ] `/biblioteca` muestra exactamente el mismo contenido y comportamiento que tenía `/` antes de este spec (buscador, chips de categoría, grid con tilt).
-- [ ] `/games/[id]` y `/games/[id]/jugar` funcionan igual que antes (mismo contenido, mismas interacciones), solo que bajo el nuevo prefijo `/games`.
-- [ ] Visitar `/juego/[id]` (ruta antigua) responde con la página 404 de Next.js.
-- [ ] En el Nav, "Inicio" aparece activo únicamente en `/`.
-- [ ] En el Nav, "Biblioteca" aparece activo en `/biblioteca` y en cualquier `/games/*`.
-- [ ] En el Nav, "Acerca de" es visible (escritorio y panel móvil) pero no navega a ningún lado ni produce error al hacer clic.
-- [ ] El logo del Nav sigue enlazando a `/` (ahora la nueva Home).
-- [ ] En viewport móvil (<840px), el Nav colapsa a hamburguesa y el panel lateral incluye "Inicio", "Biblioteca", "Salón de la Fama", "Acerca de" (inerte) e "Iniciar Sesión".
+- [x] `npm run build` compila sin errores de TypeScript ni de ESLint.
+- [x] `/` muestra la nueva landing de Home: hero con silhouettes flotantes, sección "¿Por qué Arcade Vault?", riel de juegos, stats, "Actividad en vivo", precios y CTA final.
+- [x] El botón "▶ EXPLORAR JUEGOS" del hero de Home navega a `/biblioteca`.
+- [x] El botón "✦ CREAR CUENTA" del hero de Home navega a `/auth`.
+- [x] El riel "JUEGOS DISPONIBLES AHORA" muestra exactamente los primeros 6 juegos de `GAMES` y cada `MiniCard` enlaza a `/games/[id]`.
+- [x] El botón "VER TODOS LOS JUEGOS →" navega a `/biblioteca`.
+- [x] El botón "VER SALÓN →" de la sección "Actividad en vivo" navega a `/salon`.
+- [x] El botón "EMPEZAR GRATIS →" de la sección de precios y el CTA final "INSERTAR MONEDA →" navegan a `/auth` y `/biblioteca` respectivamente, igual que en `home.jsx`.
+- [x] Las secciones marcadas `reveal` aplican su animación de aparición al hacer scroll (se les agrega la clase `in` al entrar en el viewport).
+- [x] `/biblioteca` muestra exactamente el mismo contenido y comportamiento que tenía `/` antes de este spec (buscador, chips de categoría, grid con tilt).
+- [x] `/games/[id]` y `/games/[id]/jugar` funcionan igual que antes (mismo contenido, mismas interacciones), solo que bajo el nuevo prefijo `/games`.
+- [x] Visitar `/juego/[id]` (ruta antigua) responde con la página 404 de Next.js.
+- [x] En el Nav, "Inicio" aparece activo únicamente en `/`.
+- [x] En el Nav, "Biblioteca" aparece activo en `/biblioteca` y en cualquier `/games/*`.
+- [x] En el Nav, "Acerca de" es visible (escritorio y panel móvil) pero no navega a ningún lado ni produce error al hacer clic.
+- [x] El logo del Nav sigue enlazando a `/` (ahora la nueva Home).
+- [x] En viewport móvil (<840px), el Nav colapsa a hamburguesa y el panel lateral incluye "Inicio", "Biblioteca", "Salón de la Fama", "Acerca de" (inerte) e "Iniciar Sesión".
 - [ ] No hay errores ni warnings en la consola del navegador al navegar por `/`, `/biblioteca`, `/games/[id]`, `/games/[id]/jugar`, `/auth` y `/salon`.
 
 ## Decisions

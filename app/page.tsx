@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
 import MiniCard from "@/components/MiniCard";
 import { GAMES } from "@/lib/games";
+import { useReveal } from "@/lib/useReveal";
 
 type TickerRow = { p: string; g: string; s: number; t: string; c: "cyan" | "magenta" | "yellow" | "green" };
 type TopRow = { r: number; p: string; s: number };
@@ -52,25 +52,6 @@ const FEATURES = [
     c: "green",
   },
 ] as const;
-
-function useReveal() {
-  useEffect(() => {
-    const els = document.querySelectorAll(".reveal");
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add("in");
-            io.unobserve(e.target);
-          }
-        });
-      },
-      { threshold: 0.12 }
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, []);
-}
 
 function FloatingSilhouettes() {
   return (

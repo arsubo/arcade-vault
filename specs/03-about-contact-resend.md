@@ -1,6 +1,6 @@
 # SPEC 03 — Página Acerca de y formulario de contacto con Resend
 
-> **Status:** Draft
+> **Status:** Aprobado
 > **Depends on:** 02-home-landing
 > **Date:** 2026-07-30
 > **Objective:** Portar la página `about.jsx` del prototipo a la ruta `/acerca-de`, activar el enlace "Acerca de" del Nav (hoy placeholder inerte) y conectar su formulario de contacto a un envío real de correo mediante Resend vía Server Action.

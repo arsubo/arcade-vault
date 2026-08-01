@@ -1,6 +1,6 @@
 # SPEC 04 — Integración base de Supabase
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** —
 > **Date:** 2026-08-01
 > **Objective:** Instalar y configurar el cliente de Supabase (`@supabase/ssr` + `@supabase/supabase-js`) para Next.js App Router, sin crear autenticación, rutas protegidas ni tablas — solo la conexión base, verificada con un script standalone.

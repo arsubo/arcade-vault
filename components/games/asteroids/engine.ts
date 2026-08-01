@@ -341,8 +341,16 @@ export function createAsteroidsEngine(
   // ── Input ───────────────────────────────────────────────────────────────
   const keys: Keys = {};
   const justPressed: Keys = {};
+  const GAME_KEYS = new Set([
+    "ArrowUp",
+    "ArrowDown",
+    "ArrowLeft",
+    "ArrowRight",
+    "Space",
+  ]);
 
   function onKeyDown(e: KeyboardEvent) {
+    if (GAME_KEYS.has(e.code)) e.preventDefault();
     if (!keys[e.code]) justPressed[e.code] = true;
     keys[e.code] = true;
   }

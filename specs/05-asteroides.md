@@ -1,6 +1,6 @@
 # SPEC 05 — Juego Asteroides (motor real embebido)
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** 02-home-landing
 > **Date:** 2026-08-01
 > **Objective:** Agregar "ASTEROIDES" como nuevo juego jugable del catálogo, portando el motor de canvas existente (`references/started-games/02-asteroids`) a un componente cliente que se enchufa en `/games/asteroides/jugar` mediante un registro genérico por id, manteniendo su HUD y controles originales dentro del canvas mientras notifica su estado (puntaje, vidas, nivel, pausa, fin) al HUD externo de React.

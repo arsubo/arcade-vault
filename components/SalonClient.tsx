@@ -64,7 +64,7 @@ export default function SalonClient({
               <div className="rank-num">02</div>
               <div className="name">{rows[1]?.name}</div>
               <div className="score">
-                {rows[1]?.score.toLocaleString("es-ES")}
+                {rows[1] ? rows[1].score.toLocaleString("es-ES") : ""}
               </div>
               <div className="date">{rows[1]?.date}</div>
             </div>
@@ -92,7 +92,7 @@ export default function SalonClient({
               <div className="rank-num">03</div>
               <div className="name">{rows[2]?.name}</div>
               <div className="score">
-                {rows[2]?.score.toLocaleString("es-ES")}
+                {rows[2] ? rows[2].score.toLocaleString("es-ES") : ""}
               </div>
               <div className="date">{rows[2]?.date}</div>
             </div>

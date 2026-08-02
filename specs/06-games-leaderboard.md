@@ -1,6 +1,6 @@
 # SPEC 06 — Tabla de juegos y leaderboard reales (Supabase)
 
-> **Status:** aprobado
+> **Status:** Implementado
 > **Depends on:** 04-supabase-integration, 05-asteroides
 > **Date:** 2026-08-01
 > **Objective:** Reemplazar el catálogo hardcodeado (`GAMES` en `lib/games.ts`) por una tabla `games` en Supabase que alimenta toda la app, y reemplazar el Salón de la Fama simulado por una tabla `scores` real que registra partidas de Asteroides (el único juego con motor real) enviadas de forma anónima con solo un nombre de jugador.

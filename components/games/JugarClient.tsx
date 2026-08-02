@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Game } from "@/lib/games";
 import { GAME_REGISTRY } from "@/components/games/registry";
+import { submitScore } from "@/app/games/[id]/jugar/actions";
 
 export default function JugarClient({ game }: { game: Game }) {
   const isRegistered = Boolean(GAME_REGISTRY[game.id]);
@@ -14,6 +15,12 @@ export default function JugarClient({ game }: { game: Game }) {
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
   const [gameKey, setGameKey] = useState(0);
+
+  const [playerName, setPlayerName] = useState("");
+  const [saveState, setSaveState] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
+  const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
     if (over || paused || isRegistered) return;
@@ -35,6 +42,20 @@ export default function JugarClient({ game }: { game: Game }) {
     setPaused(false);
     setOver(false);
     setGameKey((k) => k + 1);
+    setPlayerName("");
+    setSaveState("idle");
+    setSaveError("");
+  };
+
+  const handleSaveScore = async () => {
+    setSaveState("saving");
+    const result = await submitScore(game.id, playerName, score);
+    if (result.ok) {
+      setSaveState("saved");
+    } else {
+      setSaveState("error");
+      setSaveError(result.error);
+    }
   };
 
   return (
@@ -133,6 +154,39 @@ export default function JugarClient({ game }: { game: Game }) {
             <h2>FIN DEL JUEGO</h2>
             <div className="final-label">PUNTUACIÓN FINAL</div>
             <div className="final">{score.toLocaleString("es-ES")}</div>
+            {isRegistered &&
+              (saveState === "saved" ? (
+                <div className="toast-saved">PUNTAJE GUARDADO</div>
+              ) : (
+                <>
+                  <div className="input-row">
+                    <input
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      placeholder="TU NOMBRE"
+                      maxLength={20}
+                      disabled={saveState === "saving"}
+                    />
+                    <button
+                      className="btn yellow"
+                      onClick={handleSaveScore}
+                      disabled={!playerName.trim() || saveState === "saving"}
+                    >
+                      {saveState === "saving"
+                        ? "GUARDANDO…"
+                        : "GUARDAR PUNTAJE"}
+                    </button>
+                  </div>
+                  {saveState === "error" && (
+                    <div
+                      className="pixel neon-magenta"
+                      style={{ fontSize: 10 }}
+                    >
+                      {saveError}
+                    </div>
+                  )}
+                </>
+              ))}
             <div className="actions">
               <button className="btn" onClick={restart}>
                 JUGAR DE NUEVO

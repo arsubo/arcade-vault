@@ -1,6 +1,6 @@
 # SPEC 07 — Juego Tetris (motor real embebido)
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** 05-asteroides, 06-games-leaderboard
 > **Date:** 2026-08-02
 > **Objective:** Agregar "TETRIS" como nuevo juego jugable del catálogo, portando el motor de canvas de `references/started-games/03-tetris` a un componente cliente registrado en `/games/tetris/jugar`, con HUD externo de React (sin HUD ni overlay dibujados en el canvas, a diferencia de asteroides) y puntajes reales en Supabase.

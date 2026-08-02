@@ -9,7 +9,8 @@
 
 **In:**
 
-- Fila nueva `"tetris"` en `games` (migración SQL vía `mcp__supabase__apply_migration`): `title: "TETRIS"`, `cat: "PUZZLE"`, `color: "magenta"`, `cover: "cover-tetro"` (reutiliza el estilo visual existente), `best: 32100`, `plays: "3.4K"`, `short`/`long` describiendo el juego portado. La entrada `"caida"` existente **no se modifica**.
+- Fila nueva `"tetris"` en `games` (migración SQL vía `mcp__supabase__apply_migration`): `title: "TETRIS"`, `cat: "PUZZLE"`, `color: "magenta"`, `cover: "cover-tetris"` (clase CSS nueva, mismo sistema de arte 100% CSS que el resto de covers — sin assets de imagen), `best: 32100`, `plays: "3.4K"`, `short`/`long` describiendo el juego portado. La entrada `"caida"` existente **no se modifica**.
+- Nueva clase `.cover-tetris` en `app/globals.css`: representa un mini tablero de tetris apilado usando los colores reales de las piezas del motor (`#4dd0e1`, `#ffd54f`, `#ba68c8`, `#81c784`, `#e57373`, `#90caf9`, `#ffb74d`), visualmente distinta de `.cover-tetro` (la usada por `"caida"`). Sigue la misma técnica que `.cover-rocas`/`.cover-tetro` (gradientes CSS vía `::before`/`::after`, sin imágenes).
 - Crear `lib/real-games.ts` con `REAL_GAME_IDS` e `isRealGame()`, y migrar los 4 sitios hoy hardcodeados a `"asteroides"` (`app/games/[id]/jugar/actions.ts`, `app/games/[id]/page.tsx`, `app/salon/page.tsx`, `components/SalonClient.tsx`) para que lean del allowlist; luego agregar `"tetris"` junto a `"asteroides"`.
 - Motor portado 1:1 desde `references/started-games/03-tetris/game.js` a `components/games/tetris/engine.ts`: tablero de 10×20, las 8 piezas del original (7 estándar + la pieza "N" en forma de tuerca), rotación con wall kicks, soft drop y hard drop, pieza fantasma (ghost piece), vista previa de la siguiente pieza, sistema de puntaje y niveles idénticos al original (nivel sube cada 10 líneas, velocidad de caída `max(100, 1000 − (nivel−1)×90)` ms). La pausa se migra al patrón de flag consultado en cada frame (ya no cancela `requestAnimationFrame` en cada toggle). El color de la grilla queda fijo en el módulo (ya no se lee `--grid-line` vía `getComputedStyle(document.body)`). El motor no dibuja HUD ni overlay de pausa/game-over dentro del canvas: el panel de `score`/`lines`/`level` y el overlay de pausa/game-over del original (ambos `<div>` del DOM) se descartan por completo, reemplazados por el HUD externo de React y el modal "FIN DEL JUEGO" existente. El selector de tema claro/oscuro y su persistencia en `localStorage` del original se descartan enteros — el tema visual lo controla la app, no el motor.
 - El motor recibe **dos canvases** en su factory (tablero y next-piece); expone `setPaused`/`destroy` (sin `restart()` propio — "JUGAR DE NUEVO" remonta el componente vía `key`, igual que asteroides).
@@ -38,7 +39,7 @@ insert into public.games (id, title, short, long, cat, cover, color, best, plays
   ('tetris', 'TETRIS',
    'Encaja las piezas reales antes de que el tablero te desborde.',
    'Motor real de bloques que caen: rota y desliza cada tetrominó (incluida la pieza especial en forma de tuerca), usa la pieza fantasma para ver dónde aterrizará, despeja líneas para subir de nivel y evita que la pila llegue al tope.',
-   'PUZZLE', 'cover-tetro', 'magenta', 32100, '3.4K');
+   'PUZZLE', 'cover-tetris', 'magenta', 32100, '3.4K');
 ```
 
 ```ts
@@ -96,27 +97,27 @@ El contrato `GameEngineProps` (`paused`, `onScoreChange`, `onLivesChange`, `onLe
 
 ## Acceptance criteria
 
-- [ ] `npm run build` compila sin errores de TypeScript ni ESLint.
-- [ ] `lib/real-games.ts` existe con `REAL_GAME_IDS = ["asteroides", "tetris"]`; los 4 sitios que antes comparaban contra `"asteroides"` a mano ahora usan `isRealGame`.
-- [ ] La tabla `games` contiene la fila `"tetris"` tras la migración; `"caida"` permanece sin cambios.
-- [ ] `/games/tetris` (detalle) muestra la ficha usando la nueva entrada, con "JUGAR AHORA" apuntando a `/games/tetris/jugar`.
-- [ ] `/games/tetris/jugar` renderiza el tablero real dentro de `.crt-screen` con letterboxing (sin distorsión) y el next-piece visible en una esquina, controlable con flechas, `↓` y Espacio.
-- [ ] El motor no dibuja HUD ni overlay de pausa/game-over dentro del canvas — solo tablero, pieza actual, ghost piece y next-piece.
-- [ ] El HUD externo (`player-hud`) refleja en tiempo real el puntaje y nivel reales del motor, y muestra `1` fijo en el hueco de vidas.
-- [ ] "PAUSA"/"REANUDAR" del HUD externo detiene y reactiva el loop sin usar la tecla `P` interna del original.
-- [ ] Al perder (pieza nueva colisiona al aparecer), el motor notifica el fin de partida y aparece el modal "FIN DEL JUEGO" con el puntaje real, campo de nombre y "GUARDAR PUNTAJE".
-- [ ] Un puntaje guardado en Tetris aparece en `/salon` (tab "TETRIS") y en `/games/tetris` tras recargar.
-- [ ] `/salon` no rompe ni muestra `undefined` en el podio cuando un juego (p. ej. tetris recién agregado) tiene menos de 3 puntajes.
-- [ ] "JUGAR DE NUEVO" reinicia una partida nueva (tablero, puntaje, nivel y next-piece vuelven a su estado inicial).
-- [ ] Cualquier otro juego del catálogo (asteroides incluido) sigue funcionando exactamente igual, sin regresión visual ni de comportamiento.
-- [ ] Desmontar `/games/tetris/jugar` no deja el loop del motor corriendo ni listeners de teclado activos.
-- [ ] No hay errores ni warnings en la consola del navegador al jugar una partida completa.
-- [ ] `mcp__supabase__get_advisors` no reporta alertas nuevas de seguridad.
+- [ x] `npm run build` compila sin errores de TypeScript ni ESLint.
+- [ x] `lib/real-games.ts` existe con `REAL_GAME_IDS = ["asteroides", "tetris"]`; los 4 sitios que antes comparaban contra `"asteroides"` a mano ahora usan `isRealGame`.
+- [ x] La tabla `games` contiene la fila `"tetris"` tras la migración; `"caida"` permanece sin cambios.
+- [ x] `/games/tetris` (detalle) muestra la ficha usando la nueva entrada, con "JUGAR AHORA" apuntando a `/games/tetris/jugar`.
+- [ x] `/games/tetris/jugar` renderiza el tablero real dentro de `.crt-screen` con letterboxing (sin distorsión) y el next-piece visible en una esquina, controlable con flechas, `↓` y Espacio.
+- [ x] El motor no dibuja HUD ni overlay de pausa/game-over dentro del canvas — solo tablero, pieza actual, ghost piece y next-piece.
+- [ x] El HUD externo (`player-hud`) refleja en tiempo real el puntaje y nivel reales del motor, y muestra `1` fijo en el hueco de vidas.
+- [x ] "PAUSA"/"REANUDAR" del HUD externo detiene y reactiva el loop sin usar la tecla `P` interna del original.
+- [ x] Al perder (pieza nueva colisiona al aparecer), el motor notifica el fin de partida y aparece el modal "FIN DEL JUEGO" con el puntaje real, campo de nombre y "GUARDAR PUNTAJE".
+- [ x] Un puntaje guardado en Tetris aparece en `/salon` (tab "TETRIS") y en `/games/tetris` tras recargar.
+- [ x] `/salon` no rompe ni muestra `undefined` en el podio cuando un juego (p. ej. tetris recién agregado) tiene menos de 3 puntajes.
+- [ x] "JUGAR DE NUEVO" reinicia una partida nueva (tablero, puntaje, nivel y next-piece vuelven a su estado inicial).
+- [ x] Cualquier otro juego del catálogo (asteroides incluido) sigue funcionando exactamente igual, sin regresión visual ni de comportamiento.
+- [ x] Desmontar `/games/tetris/jugar` no deja el loop del motor corriendo ni listeners de teclado activos.
+- [ x] No hay errores ni warnings en la consola del navegador al jugar una partida completa.
+- [ x] `mcp__supabase__get_advisors` no reporta alertas nuevas de seguridad.
 
 ## Decisions
 
 - **Sí:** `id`/`cat`/`color` = `tetris`/`PUZZLE`/`magenta`, igual que `"caida"` (la versión falsa que ya representa este tema) — mismo criterio que asteroides reusando `yellow` de `rocas`. `"caida"` no se toca.
-- **Sí:** reusar `.cover-tetro` en vez de crear una clase nueva — mismo razonamiento que asteroides con `.cover-rocas`.
+- **No (revertido durante implementación):** reusar `.cover-tetro` — decisión original de este spec, descartada tras QA visual en `/biblioteca`: mostraba la misma miniatura que `"caida"` en dos tarjetas distintas del catálogo, confuso para el usuario. Se reemplaza por `.cover-tetris`, una clase CSS nueva (sin assets de imagen, mismo sistema de arte 100% CSS que el resto de covers) que reutiliza los colores reales de las piezas del motor portado.
 - **Sí:** letterboxing dentro de `.crt-screen` (canvas 300×600 centrado, proporción real 1:2 preservada) en vez de estirar a 4:3 o modificar el layout compartido — evita distorsión sin tocar CSS que usan los demás juegos.
 - **Sí:** el canvas del next-piece vive superpuesto dentro del mismo `.crt-screen`, no en el HUD externo de React — evita agregar un elemento de layout nuevo a `/jugar` que solo aplicaría a este juego.
 - **Sí:** el motor no dibuja HUD ni overlay de pausa/game-over en el canvas — fiel al original (que tampoco lo hacía, a diferencia de asteroides); el HUD externo y el modal "FIN DEL JUEGO" cubren ambos casos.

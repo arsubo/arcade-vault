@@ -1,13 +1,14 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { isRealGame } from "@/lib/real-games";
 
 export async function submitScore(
   gameId: string,
   playerName: string,
   score: number
 ): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (gameId !== "asteroides") {
+  if (!isRealGame(gameId)) {
     return { ok: false, error: "Este juego no admite puntajes reales." };
   }
 

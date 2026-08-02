@@ -4,21 +4,20 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Game, ScoreRow } from "@/lib/games";
 import { seededScores } from "@/lib/games";
+import { isRealGame } from "@/lib/real-games";
 
 export default function SalonClient({
   games,
-  asteroidesScores,
+  realScores,
 }: {
   games: Game[];
-  asteroidesScores: ScoreRow[];
+  realScores: Record<string, ScoreRow[]>;
 }) {
   const [tab, setTab] = useState(games[0].id);
   const rows = useMemo(
     () =>
-      tab === "asteroides"
-        ? asteroidesScores
-        : seededScores(tab.length * 23 + 7, 12),
-    [tab, asteroidesScores]
+      isRealGame(tab) ? realScores[tab] : seededScores(tab.length * 23 + 7, 12),
+    [tab, realScores]
   );
 
   return (

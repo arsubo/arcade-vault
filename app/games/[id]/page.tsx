@@ -2,16 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { seededScores } from "@/lib/games";
 import { getGameById, getTopScores } from "@/lib/supabase/queries";
+import { isRealGame } from "@/lib/real-games";
 
 export default async function GameDetailPage(props: PageProps<"/games/[id]">) {
   const { id } = await props.params;
   const game = await getGameById(id);
   if (!game) notFound();
 
-  const scores =
-    id === "asteroides"
-      ? await getTopScores("asteroides", 10)
-      : seededScores(id.length * 17 + 3, 10);
+  const scores = isRealGame(id)
+    ? await getTopScores(id, 10)
+    : seededScores(id.length * 17 + 3, 10);
 
   return (
     <div className="av-detail fade-in">

@@ -421,6 +421,34 @@ a { color: inherit; text-decoration: none; }
   image-rendering: pixelated;
 }
 
+.cover-tetris { background: linear-gradient(180deg, #05030f 0%, #14001f 60%, #1d0030 100%); }
+.cover-tetris::after {
+  content: "";
+  position: absolute;
+  inset: 32% 22% 6% 22%;
+  background:
+    linear-gradient(#4dd0e1,#4dd0e1) 0 0/25% 25%,
+    linear-gradient(#ffd54f,#ffd54f) 25% 0/25% 25%,
+    linear-gradient(#e57373,#e57373) 75% 25%/25% 25%,
+    linear-gradient(#81c784,#81c784) 0 25%/25% 25%,
+    linear-gradient(#ba68c8,#ba68c8) 25% 25%/25% 25%,
+    linear-gradient(#90caf9,#90caf9) 50% 25%/25% 25%,
+    linear-gradient(#ffb74d,#ffb74d) 0 50%/50% 25%,
+    linear-gradient(#4dd0e1,#4dd0e1) 50% 50%/50% 25%,
+    linear-gradient(#ba68c8,#ba68c8) 0 75%/100% 25%;
+  background-repeat: no-repeat;
+  filter: drop-shadow(0 0 8px rgba(186,104,200,0.4));
+  image-rendering: pixelated;
+}
+.cover-tetris::before {
+  content: "";
+  position: absolute;
+  left: 42%; top: 8%;
+  width: 16%; aspect-ratio: 2 / 1;
+  background: linear-gradient(90deg, #4dd0e1 0 50%, #ffd54f 50% 100%);
+  box-shadow: 0 0 8px rgba(77,208,225,0.6);
+}
+
 .cover-snake { background: linear-gradient(135deg,#003a2a,#0a0a18); }
 .cover-snake::after {
   content: "";

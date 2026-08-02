@@ -4,21 +4,20 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { Game, ScoreRow } from "@/lib/games";
 import { seededScores } from "@/lib/games";
+import { isRealGame } from "@/lib/real-games";
 
 export default function SalonClient({
   games,
-  asteroidesScores,
+  realScores,
 }: {
   games: Game[];
-  asteroidesScores: ScoreRow[];
+  realScores: Record<string, ScoreRow[]>;
 }) {
   const [tab, setTab] = useState(games[0].id);
   const rows = useMemo(
     () =>
-      tab === "asteroides"
-        ? asteroidesScores
-        : seededScores(tab.length * 23 + 7, 12),
-    [tab, asteroidesScores]
+      isRealGame(tab) ? realScores[tab] : seededScores(tab.length * 23 + 7, 12),
+    [tab, realScores]
   );
 
   return (
@@ -65,7 +64,7 @@ export default function SalonClient({
               <div className="rank-num">02</div>
               <div className="name">{rows[1]?.name}</div>
               <div className="score">
-                {rows[1]?.score.toLocaleString("es-ES")}
+                {rows[1] ? rows[1].score.toLocaleString("es-ES") : ""}
               </div>
               <div className="date">{rows[1]?.date}</div>
             </div>
@@ -93,7 +92,7 @@ export default function SalonClient({
               <div className="rank-num">03</div>
               <div className="name">{rows[2]?.name}</div>
               <div className="score">
-                {rows[2]?.score.toLocaleString("es-ES")}
+                {rows[2] ? rows[2].score.toLocaleString("es-ES") : ""}
               </div>
               <div className="date">{rows[2]?.date}</div>
             </div>

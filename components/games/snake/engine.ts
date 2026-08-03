@@ -190,34 +190,88 @@ export function createSnakeEngine(
   document.addEventListener("keydown", onKeyDown);
 
   // ── Draw ────────────────────────────────────────────────────────────────
-  function draw() {
-    ctx.fillStyle = "#000";
+  const BOARD_BG = "#04150a";
+  const GRID_LINE = "rgba(57, 255, 106, 0.08)";
+  const BODY_COLOR = "#1f9e46";
+  const HEAD_COLOR = "#5dffa0";
+  const SEGMENT_RADIUS = 7;
+
+  function drawBoard() {
+    ctx.fillStyle = BOARD_BG;
     ctx.fillRect(0, 0, BOARD_PX, BOARD_PX);
 
-    if (fruit && fruitsLoaded) {
-      const rect = FRUITS[fruit.key];
-      const px = fruit.cell.x * CELL;
-      const py = fruit.cell.y * CELL;
-      ctx.drawImage(
-        fruitsImg,
-        rect.x,
-        rect.y,
-        rect.w,
-        rect.h,
-        px + 2,
-        py + 2,
-        CELL - 4,
-        CELL - 4
-      );
+    ctx.strokeStyle = GRID_LINE;
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= GRID_SIZE; i++) {
+      const p = i * CELL + 0.5;
+      ctx.beginPath();
+      ctx.moveTo(p, 0);
+      ctx.lineTo(p, BOARD_PX);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, p);
+      ctx.lineTo(BOARD_PX, p);
+      ctx.stroke();
     }
+  }
 
+  function drawFruit() {
+    if (!fruit || !fruitsLoaded) return;
+    const rect = FRUITS[fruit.key];
+    const px = fruit.cell.x * CELL;
+    const py = fruit.cell.y * CELL;
+    ctx.drawImage(
+      fruitsImg,
+      rect.x,
+      rect.y,
+      rect.w,
+      rect.h,
+      px + 2,
+      py + 2,
+      CELL - 4,
+      CELL - 4
+    );
+  }
+
+  function drawHeadEyes(px: number, py: number) {
+    const vec = DIRECTION_VECTORS[direction];
+    const cx = px + CELL / 2;
+    const cy = py + CELL / 2;
+    const spread = CELL * 0.22;
+    const forward = CELL * 0.16;
+    const perpX = -vec.y;
+    const perpY = vec.x;
+
+    ctx.fillStyle = "#04150a";
+    for (const side of [-1, 1]) {
+      const ex = cx + vec.x * forward + perpX * spread * side;
+      const ey = cy + vec.y * forward + perpY * spread * side;
+      ctx.beginPath();
+      ctx.arc(ex, ey, CELL * 0.07, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawSnake() {
     for (let i = 0; i < snake.length; i++) {
       const seg = snake[i];
       const px = seg.x * CELL;
       const py = seg.y * CELL;
-      ctx.fillStyle = i === 0 ? "#39ff6a" : "#1f9e46";
-      ctx.fillRect(px + 1, py + 1, CELL - 2, CELL - 2);
+      const isHead = i === 0;
+
+      ctx.fillStyle = isHead ? HEAD_COLOR : BODY_COLOR;
+      ctx.beginPath();
+      ctx.roundRect(px + 1, py + 1, CELL - 2, CELL - 2, SEGMENT_RADIUS);
+      ctx.fill();
+
+      if (isHead) drawHeadEyes(px, py);
     }
+  }
+
+  function draw() {
+    drawBoard();
+    drawFruit();
+    drawSnake();
   }
 
   // ── Loop principal (por tick, con acumulador de tiempo) ────────────────

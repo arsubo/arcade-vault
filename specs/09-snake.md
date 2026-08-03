@@ -1,6 +1,6 @@
 # SPEC 09 — Juego Snake (motor real embebido)
 
-> **Status:** Draft
+> **Status:** Aprobado
 > **Depends on:** 05-asteroides, 06-games-leaderboard, 07-tetris, 08-arkanoid
 > **Date:** 2026-08-03
 > **Objective:** Agregar "SNAKE" como nuevo juego jugable del catálogo, implementando desde cero (sin código de origen) un motor de snake clásico en grilla 20×20 con wrap-around, usando el spritesheet real de frutas (`references/source-assets/snake-assets`), con HUD 100% externo de React y puntajes reales en Supabase.

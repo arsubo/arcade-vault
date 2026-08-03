@@ -1,6 +1,6 @@
 # SPEC 08 — Juego Arkanoid (motor real embebido)
 
-> **Status:** Draft
+> **Status:** Aprobado
 > **Depends on:** 05-asteroides, 06-games-leaderboard, 07-tetris
 > **Date:** 2026-08-03
 > **Objective:** Agregar "ARKANOID" como nuevo juego jugable del catálogo, portando el motor de canvas de `references/started-games/04-arkanoid` a un componente cliente registrado en `/games/arkanoid/jugar` (con control dual de mouse y teclado, y HUD/overlays dibujados en el canvas conviviendo con el HUD externo de React, igual que asteroides), puntajes reales en Supabase para ambos finales de partida (perder o completar los 5 niveles), y `revalidatePath` en `submitScore` extendido a los tres juegos reales.

@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { isRealGame } from "@/lib/real-games";
 
@@ -34,6 +35,9 @@ export async function submitScore(
   if (error) {
     return { ok: false, error: "No se pudo guardar el puntaje." };
   }
+
+  revalidatePath("/salon");
+  revalidatePath(`/games/${gameId}`);
 
   return { ok: true };
 }

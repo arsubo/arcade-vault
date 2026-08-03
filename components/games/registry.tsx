@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import ArkanoidGame from "./arkanoid/ArkanoidGame";
 import AsteroidsGame from "./asteroids/AsteroidsGame";
 import TetrisGame from "./tetris/TetrisGame";
 
@@ -13,4 +14,5 @@ export interface GameEngineProps {
 export const GAME_REGISTRY: Record<string, ComponentType<GameEngineProps>> = {
   asteroides: AsteroidsGame,
   tetris: TetrisGame,
+  arkanoid: ArkanoidGame,
 };

@@ -23,13 +23,18 @@ Arcade Vault ("arcade-vault") — a platform for playing games online and compet
 - Each implementing the `GameEngineProps` contract (`paused`, `onScoreChange`, `onLivesChange`, `onLevelChange`, `onGameOver`) and registered in `components/games/registry.tsx`.
 - `lib/real-games.ts` (`REAL_GAME_IDS`, `isRealGame`) is the allowlist of games with real Supabase-backed scores/leaderboards; everything else in the `games` table falls back to fake seeded scores.
 - `references/started-games/` holds the original standalone `game.js`/`index.html` sources games were ported from; `references/source-assets/` holds raw sprite/asset sources (e.g. Snake's sprite atlas) not yet moved into `public/`.
-- New games are added via the spec workflow below, using the `/add-game` skill to generate the spec.
+- New games are added via the spec workflow below, using the `/add-game` skill to generate the spec. Not sure _which_ game to add next? Use the `game-planner` agent first — see "Agents" below.
 
 ## Skills
 
 - Usa siempre `/frontend-design` para diseñar la interfaz de usuario.
 - Usa `/add-game` para generar el spec de un juego nuevo (portado desde `references/started-games/` o diseñado desde cero) antes de correr `/spec-impl`. Ver `.claude/skills/add-game/SKILL.md`.
 - `/spec` y `/spec-impl` (de [fernando-skills](https://github.com/Klerith/fernando-skills)) están instalados — ver "Workflow" abajo.
+
+## Agents
+
+- `game-planner` (`.claude/agents/game-planner.md`) decide qué juego conviene agregar después: analiza el catálogo actual, `references/started-games/`, y las tablas `games`/`scores` de Supabase (solo lectura), propone 3-5 candidatos con costo/encaje/balance de categoría-color, y recomienda uno. Es el paso previo a `/add-game` cuando no hay un juego ya decidido.
+- Mantiene memoria entre corridas en `references/game-suggestions.md` (registro append-only de todo lo evaluado, incluidos descartes con su razón) y `references/game-suggestions-todo.md` (backlog accionable de candidatos vivos). Nunca escribe código ni specs, y nunca toca `references/implemented-games.md`.
 
 ## Stack notes
 

@@ -2,14 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createArkanoidEngine, type ArkanoidEngineHandle } from "./engine";
-
-interface ArkanoidGameProps {
-  paused: boolean;
-  onScoreChange: (score: number) => void;
-  onLivesChange: (lives: number) => void;
-  onLevelChange: (level: number) => void;
-  onGameOver: (finalScore: number) => void;
-}
+import type { GameEngineProps } from "../types";
 
 export default function ArkanoidGame({
   paused,
@@ -17,7 +10,7 @@ export default function ArkanoidGame({
   onLivesChange,
   onLevelChange,
   onGameOver,
-}: ArkanoidGameProps) {
+}: GameEngineProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<ArkanoidEngineHandle | null>(null);
   const callbacksRef = useRef({

@@ -4,6 +4,7 @@
 // tablero, serpiente y fruta.
 
 import { FRUITS, FRUIT_KEYS, FRUITS_SRC } from "./sprites";
+import type { GameEngineHandle } from "../types";
 
 const GRID_SIZE = 20;
 const CELL = 30;
@@ -57,10 +58,7 @@ export interface SnakeCallbacks {
   onGameOver: (finalScore: number) => void;
 }
 
-export interface SnakeEngineHandle {
-  setPaused: (paused: boolean) => void;
-  destroy: () => void;
-}
+export type SnakeEngineHandle = GameEngineHandle;
 
 export function createSnakeEngine(
   canvas: HTMLCanvasElement,
@@ -320,6 +318,9 @@ export function createSnakeEngine(
     setPaused(p: boolean) {
       paused = p;
     },
+    // TODO(skin-designer): Snake todavía no tiene paletas. No-op hasta que le
+    // toque su corrida — el contrato ya lo exige, la implementación no.
+    setSkin() {},
     destroy() {
       if (rafId !== null) cancelAnimationFrame(rafId);
       document.removeEventListener("keydown", onKeyDown);

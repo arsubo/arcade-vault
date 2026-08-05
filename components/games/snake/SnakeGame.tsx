@@ -2,14 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createSnakeEngine, type SnakeEngineHandle } from "./engine";
-
-interface SnakeGameProps {
-  paused: boolean;
-  onScoreChange: (score: number) => void;
-  onLivesChange: (lives: number) => void;
-  onLevelChange: (level: number) => void;
-  onGameOver: (finalScore: number) => void;
-}
+import type { GameEngineProps } from "../types";
 
 export default function SnakeGame({
   paused,
@@ -17,7 +10,7 @@ export default function SnakeGame({
   onLivesChange,
   onLevelChange,
   onGameOver,
-}: SnakeGameProps) {
+}: GameEngineProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<SnakeEngineHandle | null>(null);
   const callbacksRef = useRef({

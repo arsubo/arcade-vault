@@ -4,6 +4,7 @@
 // HUD/overlays (score/nivel/vidas, GAME OVER, victoria, pausa con selector
 // de nivel) dibujados en canvas.
 
+import type { GameEngineHandle } from "../types";
 import { LEVELS } from "./levels";
 import {
   drawFrame,
@@ -74,10 +75,7 @@ export interface ArkanoidCallbacks {
   onGameOver: (finalScore: number) => void;
 }
 
-export interface ArkanoidEngineHandle {
-  setPaused: (paused: boolean) => void;
-  destroy: () => void;
-}
+export type ArkanoidEngineHandle = GameEngineHandle;
 
 export function createArkanoidEngine(
   canvas: HTMLCanvasElement,
@@ -420,6 +418,9 @@ export function createArkanoidEngine(
     setPaused(p: boolean) {
       paused = p;
     },
+    // TODO(skin-designer): Arkanoid todavía no tiene paletas. No-op hasta que
+    // le toque su corrida — el contrato ya lo exige, la implementación no.
+    setSkin() {},
     destroy() {
       disposed = true;
       if (rafId !== null) cancelAnimationFrame(rafId);

@@ -2,24 +2,21 @@
 
 import { useEffect, useRef } from "react";
 import { createAsteroidsEngine, type AsteroidsEngineHandle } from "./engine";
-
-interface AsteroidsGameProps {
-  paused: boolean;
-  onScoreChange: (score: number) => void;
-  onLivesChange: (lives: number) => void;
-  onLevelChange: (level: number) => void;
-  onGameOver: (finalScore: number) => void;
-}
+import type { GameEngineProps } from "../types";
 
 export default function AsteroidsGame({
   paused,
+  skin,
   onScoreChange,
   onLivesChange,
   onLevelChange,
   onGameOver,
-}: AsteroidsGameProps) {
+}: GameEngineProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<AsteroidsEngineHandle | null>(null);
+  // Skin del primer frame. Va por ref y no en las dependencias del efecto de
+  // montaje: cambiar de skin repinta en vivo, nunca reinicia la partida.
+  const initialSkinRef = useRef(skin);
   const callbacksRef = useRef({
     onScoreChange,
     onLivesChange,
@@ -40,12 +37,16 @@ export default function AsteroidsGame({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const engine = createAsteroidsEngine(canvas, {
-      onScoreChange: (score) => callbacksRef.current.onScoreChange(score),
-      onLivesChange: (lives) => callbacksRef.current.onLivesChange(lives),
-      onLevelChange: (level) => callbacksRef.current.onLevelChange(level),
-      onGameOver: (finalScore) => callbacksRef.current.onGameOver(finalScore),
-    });
+    const engine = createAsteroidsEngine(
+      canvas,
+      {
+        onScoreChange: (score) => callbacksRef.current.onScoreChange(score),
+        onLivesChange: (lives) => callbacksRef.current.onLivesChange(lives),
+        onLevelChange: (level) => callbacksRef.current.onLevelChange(level),
+        onGameOver: (finalScore) => callbacksRef.current.onGameOver(finalScore),
+      },
+      initialSkinRef.current
+    );
     engineRef.current = engine;
 
     return () => {
@@ -57,6 +58,10 @@ export default function AsteroidsGame({
   useEffect(() => {
     engineRef.current?.setPaused(paused);
   }, [paused]);
+
+  useEffect(() => {
+    engineRef.current?.setSkin(skin);
+  }, [skin]);
 
   return (
     <canvas

@@ -4,6 +4,8 @@
 // no dibujaba HUD ni overlay en el canvas: aquí tampoco se dibuja ninguno,
 // el HUD externo de React y el modal de fin de partida cubren ese rol.
 
+import type { GameEngineHandle } from "../types";
+
 const COLS = 10;
 const ROWS = 20;
 const BLOCK = 30;
@@ -83,10 +85,7 @@ export interface TetrisCallbacks {
   onGameOver: (finalScore: number) => void;
 }
 
-export interface TetrisEngineHandle {
-  setPaused: (paused: boolean) => void;
-  destroy: () => void;
-}
+export type TetrisEngineHandle = GameEngineHandle;
 
 export function createTetrisEngine(
   boardCanvas: HTMLCanvasElement,
@@ -405,6 +404,9 @@ export function createTetrisEngine(
     setPaused(p: boolean) {
       paused = p;
     },
+    // TODO(skin-designer): Tetris todavía no tiene paletas. No-op hasta que le
+    // toque su corrida — el contrato ya lo exige, la implementación no.
+    setSkin() {},
     destroy() {
       if (rafId !== null) cancelAnimationFrame(rafId);
       window.removeEventListener("keydown", onKeyDown);

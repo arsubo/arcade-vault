@@ -2,14 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createTetrisEngine, type TetrisEngineHandle } from "./engine";
-
-interface TetrisGameProps {
-  paused: boolean;
-  onScoreChange: (score: number) => void;
-  onLivesChange: (lives: number) => void;
-  onLevelChange: (level: number) => void;
-  onGameOver: (finalScore: number) => void;
-}
+import type { GameEngineProps } from "../types";
 
 export default function TetrisGame({
   paused,
@@ -17,7 +10,7 @@ export default function TetrisGame({
   onLivesChange,
   onLevelChange,
   onGameOver,
-}: TetrisGameProps) {
+}: GameEngineProps) {
   const boardCanvasRef = useRef<HTMLCanvasElement>(null);
   const nextCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<TetrisEngineHandle | null>(null);

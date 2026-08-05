@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Game } from "@/lib/games";
 import { GAME_REGISTRY } from "@/components/games/registry";
+import SkinPicker from "@/components/games/SkinPicker";
+import { useSkin } from "@/components/games/useSkin";
 import { submitScore } from "@/app/games/[id]/jugar/actions";
 
 export default function JugarClient({ game }: { game: Game }) {
@@ -15,6 +17,10 @@ export default function JugarClient({ game }: { game: Game }) {
   const [paused, setPaused] = useState(false);
   const [over, setOver] = useState(false);
   const [gameKey, setGameKey] = useState(0);
+  // La skin vive por encima de la `key` del motor y sobrevive a "JUGAR DE
+  // NUEVO": cambiarla repinta en vivo, nunca reinicia la partida. Por eso no
+  // aparece en `restart()`.
+  const [skin, setSkin] = useSkin();
 
   const [playerName, setPlayerName] = useState("");
   const [saveState, setSaveState] = useState<
@@ -59,7 +65,7 @@ export default function JugarClient({ game }: { game: Game }) {
   };
 
   return (
-    <div className="av-player fade-in">
+    <div className="av-player fade-in" data-skin={skin}>
       <div className="player-hud">
         <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
           <div className="hud-stat">
@@ -82,6 +88,7 @@ export default function JugarClient({ game }: { game: Game }) {
           </div>
         </div>
         <div className="hud-actions">
+          <SkinPicker skin={skin} onChange={setSkin} />
           <button className="btn yellow" onClick={() => setPaused((p) => !p)}>
             {paused ? "REANUDAR" : "PAUSA"}
           </button>
@@ -100,6 +107,7 @@ export default function JugarClient({ game }: { game: Game }) {
             <EngineComponent
               key={gameKey}
               paused={paused}
+              skin={skin}
               onScoreChange={setScore}
               onLivesChange={setLives}
               onLevelChange={setEngineLevel}

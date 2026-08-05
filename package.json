@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check:skins": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-skin-contrast.mjs",
     "format": "prettier --write ."
   },
   "dependencies": {

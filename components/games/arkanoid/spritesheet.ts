@@ -91,28 +91,94 @@ export function loadSpritesheet(cb: () => void): void {
   rawImg.src = "/games/arkanoid/spritesheet-breakout.png";
 }
 
+/** Atlas ya decodificado (el original o una copia teñida). */
+export type SpriteSheet = HTMLCanvasElement;
+
+/** El atlas tal cual vino del PNG. Es el que usa la skin `clasico`. */
+export function getBaseSheet(): SpriteSheet | null {
+  return ssLoaded ? ssImg : null;
+}
+
+export interface TintRegion {
+  frame: Frame;
+  color: string;
+}
+
+/**
+ * Opacidad del tinte. Por debajo de 1 a propósito: deja pasar entre el 10% y
+ * el 20% del pixel-art original, que es lo que conserva el bisel/sombreado de
+ * los sprites. Con 1.0 los ladrillos quedan como rectángulos planos.
+ */
+const TINT_ALPHA = 0.85;
+
+/**
+ * Copia del atlas con algunas regiones teñidas.
+ *
+ * Tiñe con `clip` + `source-atop` para no pisar los píxeles transparentes de
+ * alrededor, y dedupea por coordenada de origen: `EXPLOSION_FRAMES.gray`
+ * apunta a EXACTAMENTE las mismas coordenadas que `EXPLOSION_FRAMES.red`, y
+ * encadenar dos tintes sobre la misma región daría un color que no es ninguno
+ * de los dos. Gana el primero de la lista.
+ */
+export function buildTintedSheet(
+  regions: readonly TintRegion[]
+): SpriteSheet | null {
+  if (!ssLoaded || !ssImg) return null;
+
+  const oc = document.createElement("canvas");
+  oc.width = ssImg.width;
+  oc.height = ssImg.height;
+  const octx = oc.getContext("2d");
+  if (!octx) return null;
+  octx.drawImage(ssImg, 0, 0);
+
+  const painted = new Set<string>();
+  for (const { frame, color } of regions) {
+    const key = `${frame.sx},${frame.sy},${frame.sw},${frame.sh}`;
+    if (painted.has(key)) continue;
+    painted.add(key);
+
+    octx.save();
+    octx.beginPath();
+    octx.rect(frame.sx, frame.sy, frame.sw, frame.sh);
+    octx.clip();
+    octx.globalCompositeOperation = "source-atop";
+    octx.globalAlpha = TINT_ALPHA;
+    octx.fillStyle = color;
+    octx.fillRect(frame.sx, frame.sy, frame.sw, frame.sh);
+    octx.restore();
+  }
+
+  return oc;
+}
+
+// La hoja va SIEMPRE como argumento explícito y nunca como variable global
+// mutable: durante un cambio de skin conviven la hoja vieja y la nueva, y una
+// global haría que un frame a medio dibujar mezclara las dos.
 export function drawFrame(
   ctx: CanvasRenderingContext2D,
+  sheet: SpriteSheet | null,
   frame: Frame,
   x: number,
   y: number,
   w: number,
   h: number
 ): void {
-  if (!ssLoaded || !ssImg) return;
-  ctx.drawImage(ssImg, frame.sx, frame.sy, frame.sw, frame.sh, x, y, w, h);
+  if (!sheet) return;
+  ctx.drawImage(sheet, frame.sx, frame.sy, frame.sw, frame.sh, x, y, w, h);
 }
 
 export function drawSprite(
   ctx: CanvasRenderingContext2D,
+  sheet: SpriteSheet | null,
   name: string,
   x: number,
   y: number,
   w: number,
   h: number
 ): void {
-  if (!ssLoaded || !ssImg) return;
+  if (!sheet) return;
   const sp = SPRITES[name];
   if (!sp) return;
-  ctx.drawImage(ssImg, sp.sx, sp.sy, sp.sw, sp.sh, x, y, w, h);
+  ctx.drawImage(sheet, sp.sx, sp.sy, sp.sw, sp.sh, x, y, w, h);
 }

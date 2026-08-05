@@ -4,23 +4,17 @@
 // no dibujaba HUD ni overlay en el canvas: aquí tampoco se dibuja ninguno,
 // el HUD externo de React y el modal de fin de partida cubren ese rol.
 
+import { GAME_PALETTES, type SkinId } from "@/lib/skins";
+import type { GameEngineHandle } from "../types";
+import type { TetrisPalette } from "./palette";
+
 const COLS = 10;
 const ROWS = 20;
 const BLOCK = 30;
-const GRID_LINE_COLOR = "#22222e";
 
-const COLORS = [
-  null,
-  "#4dd0e1", // I - cyan
-  "#ffd54f", // O - yellow
-  "#ba68c8", // T - purple
-  "#81c784", // S - green
-  "#e57373", // Z - red
-  "#90caf9", // J - pale blue
-  "#ffb74d", // L - orange
-  "#9e9e9e", // N - tuerca (gris metálico)
-];
-
+// Los colores ya no viven acá: la grilla, los 8 tetrominós y el bisel del
+// bloque salen de GAME_PALETTES.tetris[skin] (ver lib/skins.ts). Los valores
+// originales de este archivo son exactamente la paleta `clasico`.
 const PIECES = [
   null,
   [
@@ -83,16 +77,17 @@ export interface TetrisCallbacks {
   onGameOver: (finalScore: number) => void;
 }
 
-export interface TetrisEngineHandle {
-  setPaused: (paused: boolean) => void;
-  destroy: () => void;
-}
+export type TetrisEngineHandle = GameEngineHandle;
 
 export function createTetrisEngine(
   boardCanvas: HTMLCanvasElement,
   nextCanvas: HTMLCanvasElement,
-  callbacks: TetrisCallbacks
+  callbacks: TetrisCallbacks,
+  skin: SkinId
 ): TetrisEngineHandle {
+  // La skin entra siempre como dato explícito. El motor nunca consulta el DOM
+  // (getComputedStyle) para averiguar un color.
+  let pal: TetrisPalette = GAME_PALETTES.tetris[skin];
   const ctx = boardCanvas.getContext("2d") as CanvasRenderingContext2D;
   if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas.");
   const nextCtx = nextCanvas.getContext("2d") as CanvasRenderingContext2D;
@@ -277,18 +272,19 @@ export function createTetrisEngine(
     alpha?: number
   ) {
     if (!colorIndex) return;
-    const color = COLORS[colorIndex]!;
+    // El motor indexa las piezas 1..8; la paleta las guarda 0..7.
+    const color = pal.pieces[colorIndex - 1];
     context.globalAlpha = alpha ?? 1;
     context.fillStyle = color;
     context.fillRect(x * size + 1, y * size + 1, size - 2, size - 2);
     // highlight
-    context.fillStyle = "rgba(255,255,255,0.12)";
+    context.fillStyle = pal.highlight;
     context.fillRect(x * size + 1, y * size + 1, size - 2, 4);
     context.globalAlpha = 1;
   }
 
   function drawGrid() {
-    ctx.strokeStyle = GRID_LINE_COLOR;
+    ctx.strokeStyle = pal.grid;
     ctx.lineWidth = 0.5;
     for (let c = 1; c < COLS; c++) {
       ctx.beginPath();
@@ -404,6 +400,17 @@ export function createTetrisEngine(
   return {
     setPaused(p: boolean) {
       paused = p;
+    },
+    setSkin(s: SkinId) {
+      pal = GAME_PALETTES.tetris[s];
+      // Repintado inmediato y explícito de las DOS superficies: el loop hace
+      // `return` antes de dibujar cuando está en pausa o terminado — y estar en
+      // pausa es justo el momento más probable para tocar el selector —, y el
+      // canvas de "siguiente pieza" solo se redibuja dentro de spawn(), o sea
+      // recién en la próxima pieza. Sin estas dos llamadas el cambio de skin
+      // se vería tarde o a medias.
+      draw();
+      drawNext();
     },
     destroy() {
       if (rafId !== null) cancelAnimationFrame(rafId);

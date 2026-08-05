@@ -1051,8 +1051,8 @@ a {
   align-items: center;
   justify-content: space-between;
   padding: 14px 18px;
-  border: 1px solid var(--line);
-  background: var(--bg-2);
+  border: 1px solid var(--skin-hud-line);
+  background: var(--skin-hud-bg);
   margin-bottom: 18px;
   flex-wrap: wrap;
 }
@@ -1064,23 +1064,23 @@ a {
 .hud-stat .l {
   font-family: var(--mono);
   font-size: 10px;
-  color: var(--ink-faint);
+  color: var(--skin-ink-faint);
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 .hud-stat .v {
   font-family: var(--pixel);
   font-size: 16px;
-  color: var(--cyan);
-  text-shadow: 0 0 6px rgba(0, 245, 255, 0.5);
+  color: var(--skin-accent);
+  text-shadow: 0 0 6px rgba(var(--skin-accent-rgb), 0.5);
 }
 .hud-stat.lives .v {
-  color: var(--magenta);
-  text-shadow: 0 0 6px rgba(255, 0, 110, 0.5);
+  color: var(--skin-accent2);
+  text-shadow: 0 0 6px rgba(var(--skin-accent2-rgb), 0.5);
 }
 .hud-stat.level .v {
-  color: var(--yellow);
-  text-shadow: 0 0 6px rgba(245, 255, 0, 0.5);
+  color: var(--skin-warn);
+  text-shadow: 0 0 6px rgba(var(--skin-warn-rgb), 0.5);
 }
 .hud-actions {
   display: flex;
@@ -1090,12 +1090,12 @@ a {
 .crt {
   position: relative;
   border-radius: 28px;
-  background: #050507;
+  background: var(--skin-bezel);
   padding: 24px;
   box-shadow:
-    0 0 0 6px #1b1b22,
-    0 0 0 7px #2a2a35,
-    0 30px 80px -20px rgba(0, 245, 255, 0.35);
+    0 0 0 6px var(--skin-bezel-ring-1),
+    0 0 0 7px var(--skin-bezel-ring-2),
+    0 30px 80px -20px rgba(var(--skin-accent-rgb), 0.35);
   overflow: hidden;
 }
 .crt::before {
@@ -1104,7 +1104,7 @@ a {
   inset: 0;
   background: radial-gradient(
     120% 80% at 50% 30%,
-    rgba(0, 245, 255, 0.05),
+    rgba(var(--skin-accent-rgb), 0.05),
     transparent 60%
   );
   pointer-events: none;
@@ -1112,12 +1112,12 @@ a {
 .crt-screen {
   position: relative;
   aspect-ratio: 4 / 3;
-  background: #000;
+  background: var(--skin-screen-bg);
   border-radius: 12px / 28px;
   overflow: hidden;
   box-shadow:
     inset 0 0 60px rgba(0, 0, 0, 0.9),
-    inset 0 0 20px rgba(0, 245, 255, 0.15);
+    inset 0 0 20px rgba(var(--skin-accent-rgb), 0.15);
 }
 .crt-screen::after {
   content: "";
@@ -1125,7 +1125,7 @@ a {
   inset: 0;
   background: repeating-linear-gradient(
     0deg,
-    rgba(0, 0, 0, 0.18) 0 2px,
+    var(--skin-scanline) 0 2px,
     transparent 2px 4px
   );
   pointer-events: none;
@@ -1148,7 +1148,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--cyan);
+  color: var(--skin-accent);
   font-family: var(--pixel);
   font-size: 12px;
   text-align: center;
@@ -1161,7 +1161,7 @@ a {
   padding: 0 8px;
   font-family: var(--pixel);
   font-size: 8px;
-  color: var(--ink-faint);
+  color: var(--skin-ink-faint);
   letter-spacing: 0.16em;
 }
 .crt-bottom .led {
@@ -1174,8 +1174,167 @@ a {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 6px var(--green);
+  background: var(--skin-led);
+  box-shadow: 0 0 6px var(--skin-led);
+}
+
+/* ===== skins del reproductor =================================================
+   Capa `--skin-*` acotada a `.av-player`. Los valores por defecto son idénticos,
+   carácter por carácter, a los literales que reemplazaron: con `data-skin` en
+   "clasico" (o ausente) el reproductor se ve exactamente igual que antes.
+   NO tocar `:root` ni la regla base `.btn` — son globales del catálogo entero.
+   `--skin-*-rgb` va como triple de números: `rgba(var(--x), .5)` no funciona si
+   `--x` es un hex.
+   Todos los valores replican `SKIN_RAMP` de `lib/skins.ts`.
+   ========================================================================== */
+.av-player {
+  --skin-accent: var(--cyan);
+  --skin-accent-rgb: 0, 245, 255;
+  --skin-accent2: var(--magenta);
+  --skin-accent2-rgb: 255, 0, 110;
+  --skin-warn: var(--yellow);
+  --skin-warn-rgb: 245, 255, 0;
+  --skin-ink: var(--ink);
+  --skin-ink-dim: var(--ink-dim);
+  --skin-ink-faint: var(--ink-faint);
+  --skin-screen-bg: #000;
+  --skin-bezel: #050507;
+  --skin-bezel-ring-1: #1b1b22;
+  --skin-bezel-ring-2: #2a2a35;
+  --skin-hud-bg: var(--bg-2);
+  --skin-hud-line: var(--line);
+  --skin-scanline: rgba(0, 0, 0, 0.18);
+  --skin-led: var(--green);
+}
+
+/* neon → luz emisiva sobre cristal casi negro */
+.av-player[data-skin="neon"] {
+  --skin-accent: #00f5ff;
+  --skin-accent-rgb: 0, 245, 255;
+  --skin-accent2: #ff2fd0;
+  --skin-accent2-rgb: 255, 47, 208;
+  --skin-warn: #ffc247;
+  --skin-warn-rgb: 255, 194, 71;
+  --skin-ink: #eafcff;
+  --skin-ink-dim: #8fb8c4;
+  --skin-ink-faint: #5f8593;
+  --skin-screen-bg: #04070c;
+  --skin-bezel: #03050a;
+  --skin-bezel-ring-1: #0d1b26;
+  --skin-bezel-ring-2: #14313f;
+  --skin-hud-bg: #060d14;
+  --skin-hud-line: rgba(0, 245, 255, 0.22);
+  --skin-scanline: rgba(0, 0, 0, 0.22);
+  --skin-led: #39ffb0;
+}
+
+/* retro → fósforo monocromo ámbar: solo escalones de luminancia, un único matiz */
+.av-player[data-skin="retro"] {
+  --skin-accent: #ffb000;
+  --skin-accent-rgb: 255, 176, 0;
+  --skin-accent2: #ffe3b0;
+  --skin-accent2-rgb: 255, 227, 176;
+  --skin-warn: #ffc63d;
+  --skin-warn-rgb: 255, 198, 61;
+  --skin-ink: #ffd694;
+  --skin-ink-dim: #c98a1e;
+  --skin-ink-faint: #8a6412;
+  --skin-screen-bg: #0d0800;
+  --skin-bezel: #100b03;
+  --skin-bezel-ring-1: #2a1e08;
+  --skin-bezel-ring-2: #3d2c0d;
+  --skin-hud-bg: #140d02;
+  --skin-hud-line: rgba(255, 176, 0, 0.22);
+  --skin-scanline: rgba(0, 0, 0, 0.24);
+  --skin-led: #ffb000;
+}
+
+/* Botones DEL REPRODUCTOR. Reglas nuevas, después de `.btn` en el archivo y con
+   más especificidad: la `.btn` base sigue intacta para home, catálogo y modales. */
+.av-player .btn {
+  border-color: var(--skin-accent);
+  color: var(--skin-ink);
+}
+.av-player .btn::before {
+  border-color: rgba(var(--skin-accent-rgb), 0.25);
+}
+.av-player .btn:hover {
+  color: var(--skin-accent);
+  box-shadow:
+    0 0 14px rgba(var(--skin-accent-rgb), 0.55),
+    inset 0 0 8px rgba(var(--skin-accent-rgb), 0.35);
+}
+.av-player .btn.magenta {
+  border-color: var(--skin-accent2);
+}
+.av-player .btn.magenta:hover {
+  color: var(--skin-accent2);
+  box-shadow:
+    0 0 14px rgba(var(--skin-accent2-rgb), 0.55),
+    inset 0 0 8px rgba(var(--skin-accent2-rgb), 0.35);
+}
+.av-player .btn.yellow {
+  border-color: var(--skin-warn);
+}
+.av-player .btn.yellow:hover {
+  color: var(--skin-warn);
+  box-shadow:
+    0 0 14px rgba(var(--skin-warn-rgb), 0.6),
+    inset 0 0 8px rgba(var(--skin-warn-rgb), 0.35);
+}
+.av-player .btn.ghost {
+  border-color: var(--skin-ink-faint);
+  color: var(--skin-ink-dim);
+}
+.av-player .btn.ghost:hover {
+  color: var(--skin-ink);
+  border-color: var(--skin-ink-dim);
+  box-shadow: none;
+}
+
+/* Selector de skin (chip-row) */
+.skin-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.skin-picker .label {
+  font-family: var(--pixel);
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  color: var(--skin-ink-faint);
+}
+.skin-picker .swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  background: var(--skin-hud-bg);
+  border: 1px solid var(--skin-hud-line);
+  font-family: var(--pixel);
+  font-size: 8px;
+  letter-spacing: 0.14em;
+  color: var(--skin-ink-dim);
+  cursor: pointer;
+  transition:
+    color 140ms,
+    border-color 140ms,
+    box-shadow 140ms;
+}
+.skin-picker .swatch .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.skin-picker .swatch:hover {
+  color: var(--skin-ink);
+}
+.skin-picker .swatch[aria-pressed="true"] {
+  color: var(--skin-ink);
+  border-color: currentColor;
+  box-shadow: 0 0 8px rgba(var(--skin-accent-rgb), 0.3);
 }
 
 /* fake in-screen game */

@@ -23,13 +23,20 @@ Arcade Vault ("arcade-vault") — a platform for playing games online and compet
 - Each implementing the `GameEngineProps` contract (`paused`, `onScoreChange`, `onLivesChange`, `onLevelChange`, `onGameOver`) and registered in `components/games/registry.tsx`.
 - `lib/real-games.ts` (`REAL_GAME_IDS`, `isRealGame`) is the allowlist of games with real Supabase-backed scores/leaderboards; everything else in the `games` table falls back to fake seeded scores.
 - `references/started-games/` holds the original standalone `game.js`/`index.html` sources games were ported from; `references/source-assets/` holds raw sprite/asset sources (e.g. Snake's sprite atlas) not yet moved into `public/`.
-- New games are added via the spec workflow below, using the `/add-game` skill to generate the spec.
+- New games are added via the spec workflow below, using the `/add-game` skill to generate the spec. Not sure _which_ game to add next? Use the `game-planner` agent first — see "Agents" below.
 
 ## Skills
 
 - Usa siempre `/frontend-design` para diseñar la interfaz de usuario.
 - Usa `/add-game` para generar el spec de un juego nuevo (portado desde `references/started-games/` o diseñado desde cero) antes de correr `/spec-impl`. Ver `.claude/skills/add-game/SKILL.md`.
 - `/spec` y `/spec-impl` (de [fernando-skills](https://github.com/Klerith/fernando-skills)) están instalados — ver "Workflow" abajo.
+
+## Agents
+
+- `game-planner` (`.claude/agents/game-planner.md`) decide qué juego conviene agregar después: analiza el catálogo actual, `references/started-games/`, y las tablas `games`/`scores` de Supabase (solo lectura), propone 3-5 candidatos con costo/encaje/balance de categoría-color, y recomienda uno. Es el paso previo a `/add-game` cuando no hay un juego ya decidido.
+- Mantiene memoria entre corridas en `references/game-suggestions.md` (registro append-only de todo lo evaluado, incluidos descartes con su razón) y `references/game-suggestions-todo.md` (backlog accionable de candidatos vivos). Nunca escribe código ni specs, y nunca toca `references/implemented-games.md`.
+- `game-jam` (`.claude/agents/game-jam.md`) recibe un tema o idea y diseña un juego nuevo sin preguntar nada, decidiendo sola cada elección de diseño y dejándola anotada en `Decisions`. Escribe al menos dos specs `Draft` encadenados en `specs/game-jam/<game-id>/` (numeración continua con `specs/`, sin assets externos): uno con el juego terminado de punta a punta, y otro con una extensión opcional que puede no implementarse nunca. Es una alternativa automática a `/add-game` (que en cambio pregunta antes de escribir) para cuando ya tenés el tema y querés specs listos para revisar.
+- `skin-designer` (`.claude/agents/skin-designer.md`) es el único de los tres que escribe código directamente en vez de specs. Aplica el sistema de skins visuales `clasico`/`neon`/`retro` a **un solo juego por corrida** (el `game-id` que le indiques) — nunca al catálogo completo de una vez —, extrayendo los colores hardcodeados del motor a una paleta tipada en `lib/skins.ts`, cableando un selector persistente en `/jugar`, y verificando contraste WCAG (`npm run check:skins`) antes de dar el juego por terminado. Lleva su propio progreso en `references/game-with-themes.md`. Sin `game-id`, reporta qué juegos ya tienen sus 3 skins y pide cuál seguir.
 
 ## Stack notes
 
@@ -41,6 +48,7 @@ Arcade Vault ("arcade-vault") — a platform for playing games online and compet
 - Resend (`resend`) sends the contact form email server-side from `app/acerca-de/actions.ts`.
 - Required env vars (`.env.template`): `RESEND_API_KEY`, `SUPABASE_DB_PASSWORD`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 - A `PostToolUse` hook (`.claude/hooks/format-and-lint.mjs`, in `.claude/settings.json`) runs Prettier + ESLint automatically after every `Write`/`Edit`.
+- `npm run check:skins [<game-id>]` runs `scripts/check-skin-contrast.mjs`, a WCAG contrast verifier over `lib/skins.ts`'s `GAME_PALETTES`; it's built and maintained by the `skin-designer` agent as games get their skins, one at a time.
 
 ## Workflow: Spec Driven Design
 

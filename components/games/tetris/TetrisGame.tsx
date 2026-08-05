@@ -6,6 +6,7 @@ import type { GameEngineProps } from "../types";
 
 export default function TetrisGame({
   paused,
+  skin,
   onScoreChange,
   onLivesChange,
   onLevelChange,
@@ -14,6 +15,9 @@ export default function TetrisGame({
   const boardCanvasRef = useRef<HTMLCanvasElement>(null);
   const nextCanvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<TetrisEngineHandle | null>(null);
+  // La skin inicial se lee por ref para que NO entre en las dependencias del
+  // efecto que monta el motor: cambiar de skin repinta en vivo, nunca reinicia.
+  const initialSkinRef = useRef(skin);
   const callbacksRef = useRef({
     onScoreChange,
     onLivesChange,
@@ -35,12 +39,17 @@ export default function TetrisGame({
     const nextCanvas = nextCanvasRef.current;
     if (!boardCanvas || !nextCanvas) return;
 
-    const engine = createTetrisEngine(boardCanvas, nextCanvas, {
-      onScoreChange: (score) => callbacksRef.current.onScoreChange(score),
-      onLivesChange: (lives) => callbacksRef.current.onLivesChange(lives),
-      onLevelChange: (level) => callbacksRef.current.onLevelChange(level),
-      onGameOver: (finalScore) => callbacksRef.current.onGameOver(finalScore),
-    });
+    const engine = createTetrisEngine(
+      boardCanvas,
+      nextCanvas,
+      {
+        onScoreChange: (score) => callbacksRef.current.onScoreChange(score),
+        onLivesChange: (lives) => callbacksRef.current.onLivesChange(lives),
+        onLevelChange: (level) => callbacksRef.current.onLevelChange(level),
+        onGameOver: (finalScore) => callbacksRef.current.onGameOver(finalScore),
+      },
+      initialSkinRef.current
+    );
     engineRef.current = engine;
 
     return () => {
@@ -52,6 +61,10 @@ export default function TetrisGame({
   useEffect(() => {
     engineRef.current?.setPaused(paused);
   }, [paused]);
+
+  useEffect(() => {
+    engineRef.current?.setSkin(skin);
+  }, [skin]);
 
   return (
     <div

@@ -3,8 +3,10 @@
 // vidas, nivel) vive exclusivamente en React — el canvas solo dibuja
 // tablero, serpiente y fruta.
 
-import { FRUITS, FRUIT_KEYS, FRUITS_SRC } from "./sprites";
+import { GAME_PALETTES, type SkinId } from "@/lib/skins";
 import type { GameEngineHandle } from "../types";
+import type { SnakePalette } from "./palette";
+import { FRUITS, FRUIT_KEYS, FRUITS_SRC } from "./sprites";
 
 const GRID_SIZE = 20;
 const CELL = 30;
@@ -60,9 +62,14 @@ export interface SnakeCallbacks {
 
 export type SnakeEngineHandle = GameEngineHandle;
 
+function paletteFor(skin: SkinId): SnakePalette {
+  return GAME_PALETTES.snake[skin];
+}
+
 export function createSnakeEngine(
   canvas: HTMLCanvasElement,
-  callbacks: SnakeCallbacks
+  callbacks: SnakeCallbacks,
+  skin: SkinId
 ): SnakeEngineHandle {
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
   if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas.");
@@ -188,17 +195,16 @@ export function createSnakeEngine(
   document.addEventListener("keydown", onKeyDown);
 
   // ── Draw ────────────────────────────────────────────────────────────────
-  const BOARD_BG = "#04150a";
-  const GRID_LINE = "rgba(57, 255, 106, 0.08)";
-  const BODY_COLOR = "#1f9e46";
-  const HEAD_COLOR = "#5dffa0";
+  // Todo el color entra por `pal`; el motor no conoce ni un literal ni lee el
+  // DOM para deducirlo.
+  let pal = paletteFor(skin);
   const SEGMENT_RADIUS = 7;
 
   function drawBoard() {
-    ctx.fillStyle = BOARD_BG;
+    ctx.fillStyle = pal.boardBg;
     ctx.fillRect(0, 0, BOARD_PX, BOARD_PX);
 
-    ctx.strokeStyle = GRID_LINE;
+    ctx.strokeStyle = pal.gridLine;
     ctx.lineWidth = 1;
     for (let i = 0; i <= GRID_SIZE; i++) {
       const p = i * CELL + 0.5;
@@ -218,6 +224,19 @@ export function createSnakeEngine(
     const rect = FRUITS[fruit.key];
     const px = fruit.cell.x * CELL;
     const py = fruit.cell.y * CELL;
+
+    // Los sprites de fruta son fotográficos y multi-tono: teñirlos con la skin
+    // los volvería irreconocibles y, peor, indistinguibles entre sí. En vez de
+    // eso se dibuja un "plato" de color controlado por la paleta DEBAJO y el
+    // sprite queda intacto encima. `clasico` no lleva plato (`null`), para no
+    // introducir un elemento que antes no existía.
+    if (pal.fruitPlate) {
+      ctx.fillStyle = pal.fruitPlate;
+      ctx.beginPath();
+      ctx.arc(px + CELL / 2, py + CELL / 2, CELL * 0.42, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
     ctx.drawImage(
       fruitsImg,
       rect.x,
@@ -240,7 +259,7 @@ export function createSnakeEngine(
     const perpX = -vec.y;
     const perpY = vec.x;
 
-    ctx.fillStyle = "#04150a";
+    ctx.fillStyle = pal.eye;
     for (const side of [-1, 1]) {
       const ex = cx + vec.x * forward + perpX * spread * side;
       const ey = cy + vec.y * forward + perpY * spread * side;
@@ -257,7 +276,7 @@ export function createSnakeEngine(
       const py = seg.y * CELL;
       const isHead = i === 0;
 
-      ctx.fillStyle = isHead ? HEAD_COLOR : BODY_COLOR;
+      ctx.fillStyle = isHead ? pal.head : pal.body;
       ctx.beginPath();
       ctx.roundRect(px + 1, py + 1, CELL - 2, CELL - 2, SEGMENT_RADIUS);
       ctx.fill();
@@ -318,9 +337,13 @@ export function createSnakeEngine(
     setPaused(p: boolean) {
       paused = p;
     },
-    // TODO(skin-designer): Snake todavía no tiene paletas. No-op hasta que le
-    // toque su corrida — el contrato ya lo exige, la implementación no.
-    setSkin() {},
+    setSkin(next: SkinId) {
+      pal = paletteFor(next);
+      // Repintado inmediato en vez de esperar al próximo frame: el jugador
+      // suele tocar el selector con la partida en pausa, y el cambio de skin
+      // nunca reinicia ni altera el estado del juego.
+      draw();
+    },
     destroy() {
       if (rafId !== null) cancelAnimationFrame(rafId);
       document.removeEventListener("keydown", onKeyDown);

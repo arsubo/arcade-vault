@@ -22,6 +22,9 @@
 //                 BANDA 1.10:1 – 2.20:1. El techo es tan obligatorio como el
 //                 piso: "arreglar el contraste" de un detalle decorativo nunca
 //                 debe convertirlo en un elemento que compita con el juego.
+//   veil          Velo de volumen (bisel de un bloque, brillo especular)
+//                 dibujado ENCIMA de un token ya verificado.
+//                 ratio ≤ 2.20   (solo techo, sin piso: es sutil por diseño).
 //
 // ── COBERTURA ──────────────────────────────────────────────────────────────
 // Acotada, no total. Falla si un juego que YA está en `GAME_PALETTES` no tiene
@@ -108,11 +111,30 @@ const THRESHOLDS = {
   "label-on-fill": { min: 4.5 },
   sibling: { min: 1.5 },
   decor: { min: 1.1, max: 2.2 },
+  veil: { max: 2.2 },
 };
+
+/**
+ * Resuelve un token de `ContrastRule` contra la paleta del juego. Soporta un
+ * path plano ("bg") o con índice de array separado por "." ("pieces.0"), para
+ * paletas que agrupan una familia de colores en un array en vez de campos con
+ * nombre (Tetris: 8 piezas).
+ */
+function resolveToken(pal, path) {
+  return path
+    .split(".")
+    .reduce((acc, key) => (acc == null ? acc : acc[key]), pal);
+}
 
 const offenders = [];
 
 function check({ game, skin, token, kind, fgRaw, bgRaw }) {
+  // `null` explícito = "esta skin no pinta ese elemento" (p. ej. un sprite
+  // que se dibuja sin teñir en `clasico`, o un fondo de apoyo que solo existe
+  // en algunas skins). No es un infractor. Un token AUSENTE (`undefined`) sí
+  // cae más abajo como color ilegible.
+  if (fgRaw === null || bgRaw === null) return;
+
   const fg = parseColor(fgRaw);
   const bg = parseColor(bgRaw);
   if (!fg || !bg) {
@@ -244,13 +266,14 @@ for (const game of games) {
     const pal = bySkin[skin];
     if (!pal) continue;
     for (const rule of rules) {
+      if (rule.skins && !rule.skins.includes(skin)) continue;
       check({
         game,
         skin,
         token: `${rule.token} vs ${rule.against}`,
         kind: rule.kind,
-        fgRaw: pal[rule.token],
-        bgRaw: pal[rule.against],
+        fgRaw: resolveToken(pal, rule.token),
+        bgRaw: resolveToken(pal, rule.against),
       });
     }
   }

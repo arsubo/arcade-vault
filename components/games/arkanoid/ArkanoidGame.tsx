@@ -6,6 +6,7 @@ import type { GameEngineProps } from "../types";
 
 export default function ArkanoidGame({
   paused,
+  skin,
   onScoreChange,
   onLivesChange,
   onLevelChange,
@@ -13,6 +14,9 @@ export default function ArkanoidGame({
 }: GameEngineProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<ArkanoidEngineHandle | null>(null);
+  // Skin del primer frame. Va por ref y no en las dependencias del efecto de
+  // montaje: cambiar de skin repinta en vivo, nunca reinicia la partida.
+  const initialSkinRef = useRef(skin);
   const callbacksRef = useRef({
     onScoreChange,
     onLivesChange,
@@ -33,12 +37,16 @@ export default function ArkanoidGame({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const engine = createArkanoidEngine(canvas, {
-      onScoreChange: (score) => callbacksRef.current.onScoreChange(score),
-      onLivesChange: (lives) => callbacksRef.current.onLivesChange(lives),
-      onLevelChange: (level) => callbacksRef.current.onLevelChange(level),
-      onGameOver: (finalScore) => callbacksRef.current.onGameOver(finalScore),
-    });
+    const engine = createArkanoidEngine(
+      canvas,
+      {
+        onScoreChange: (score) => callbacksRef.current.onScoreChange(score),
+        onLivesChange: (lives) => callbacksRef.current.onLivesChange(lives),
+        onLevelChange: (level) => callbacksRef.current.onLevelChange(level),
+        onGameOver: (finalScore) => callbacksRef.current.onGameOver(finalScore),
+      },
+      initialSkinRef.current
+    );
     engineRef.current = engine;
 
     return () => {
@@ -50,6 +58,10 @@ export default function ArkanoidGame({
   useEffect(() => {
     engineRef.current?.setPaused(paused);
   }, [paused]);
+
+  useEffect(() => {
+    engineRef.current?.setSkin(skin);
+  }, [skin]);
 
   return (
     <canvas

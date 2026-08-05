@@ -4,14 +4,25 @@
 // HUD/overlays (score/nivel/vidas, GAME OVER, victoria, pausa con selector
 // de nivel) dibujados en canvas.
 
+import { GAME_PALETTES, type SkinId } from "@/lib/skins";
 import type { GameEngineHandle } from "../types";
 import { LEVELS } from "./levels";
 import {
+  BRICK_TOKEN,
+  type ArkanoidBrickColor,
+  type ArkanoidPalette,
+} from "./palette";
+import {
+  buildTintedSheet,
   drawFrame,
   drawSprite,
   EXPLOSION_DURATION,
   EXPLOSION_FRAMES,
+  getBaseSheet,
   loadSpritesheet,
+  SPRITES,
+  type SpriteSheet,
+  type TintRegion,
 } from "./spritesheet";
 
 const W = 800;
@@ -77,9 +88,50 @@ export interface ArkanoidCallbacks {
 
 export type ArkanoidEngineHandle = GameEngineHandle;
 
+// ── Atlas teñido por skin ───────────────────────────────────────────────────
+// Una hoja por skin, cacheada a nivel de módulo: las paletas son estáticas, así
+// que teñir dos veces la misma skin no puede dar un resultado distinto. La
+// caché sobrevive a un remount del motor (p. ej. "JUGAR DE NUEVO").
+
+const sheetCache = new Map<SkinId, SpriteSheet | null>();
+
+function sheetFor(skin: SkinId): SpriteSheet | null {
+  const base = getBaseSheet();
+  // Sin atlas decodificado todavía no hay nada que teñir NI que cachear.
+  if (!base) return null;
+
+  const cached = sheetCache.get(skin);
+  if (cached !== undefined) return cached;
+
+  const pal = GAME_PALETTES.arkanoid[skin];
+  const regions: TintRegion[] = [];
+
+  if (pal.paddle) regions.push({ frame: SPRITES.paddle, color: pal.paddle });
+  if (pal.ball) regions.push({ frame: SPRITES.ball, color: pal.ball });
+
+  // El orden importa: `buildTintedSheet` dedupea por coordenada y gana el
+  // primero. "red" va antes que "gray", que comparte con él las coordenadas de
+  // sus 4 frames de explosión.
+  for (const color of Object.keys(BRICK_TOKEN) as ArkanoidBrickColor[]) {
+    const tint = pal[BRICK_TOKEN[color]];
+    if (!tint) continue;
+    const block = SPRITES["block_" + color];
+    if (block) regions.push({ frame: block, color: tint });
+    for (const frame of EXPLOSION_FRAMES[color] ?? []) {
+      regions.push({ frame, color: tint });
+    }
+  }
+
+  // Sin regiones que teñir (`clasico`): el atlas original, sin copia.
+  const sheet = regions.length === 0 ? base : buildTintedSheet(regions);
+  sheetCache.set(skin, sheet);
+  return sheet;
+}
+
 export function createArkanoidEngine(
   canvas: HTMLCanvasElement,
-  callbacks: ArkanoidCallbacks
+  callbacks: ArkanoidCallbacks,
+  skin: SkinId
 ): ArkanoidEngineHandle {
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
   if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas.");
@@ -95,6 +147,17 @@ export function createArkanoidEngine(
     activeAudio.add(clone);
     clone.addEventListener("ended", () => activeAudio.delete(clone));
     clone.play().catch(() => {});
+  }
+
+  // ── Skin ────────────────────────────────────────────────────────────────
+  // La skin entra como dato explícito y se guarda acá; el motor nunca lee el
+  // DOM para averiguar su color.
+  let currentSkin: SkinId = skin;
+  let pal: ArkanoidPalette = GAME_PALETTES.arkanoid[currentSkin];
+  let sheet: SpriteSheet | null = null;
+
+  function refreshSheet() {
+    sheet = sheetFor(currentSkin);
   }
 
   // ── Estado del juego ────────────────────────────────────────────────────
@@ -294,9 +357,9 @@ export function createArkanoidEngine(
 
   // ── Draw ────────────────────────────────────────────────────────────────
   function drawOverlay(message: string) {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+    ctx.fillStyle = pal.scrim;
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = pal.overlayText;
     ctx.font = "bold 64px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -304,10 +367,10 @@ export function createArkanoidEngine(
   }
 
   function drawPauseOverlay() {
-    ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+    ctx.fillStyle = pal.scrimPause;
     ctx.fillRect(0, 0, W, H);
 
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = pal.pauseText;
     ctx.font = "bold 56px monospace";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -319,14 +382,14 @@ export function createArkanoidEngine(
     for (let i = 0; i < 5; i++) {
       const bx = PAUSE_BTN_ROW_X + i * (PAUSE_BTN_W + PAUSE_BTN_GAP);
       const isActive = i + 1 === currentLevel;
-      ctx.fillStyle = isActive ? "#f0c040" : "#444";
-      ctx.strokeStyle = "#fff";
+      ctx.fillStyle = isActive ? pal.btnFillActive : pal.btnFillIdle;
+      ctx.strokeStyle = pal.btnStroke;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.roundRect(bx, PAUSE_BTN_Y, PAUSE_BTN_W, PAUSE_BTN_H, 6);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = isActive ? "#000" : "#fff";
+      ctx.fillStyle = isActive ? pal.btnTextActive : pal.btnTextIdle;
       ctx.font = "bold 20px monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -339,13 +402,14 @@ export function createArkanoidEngine(
   }
 
   function draw() {
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = pal.bg;
     ctx.fillRect(0, 0, W, H);
 
     for (const block of blocks) {
       if (block.alive)
         drawSprite(
           ctx,
+          sheet,
           "block_" + block.color,
           block.x,
           block.y,
@@ -361,6 +425,7 @@ export function createArkanoidEngine(
       );
       drawFrame(
         ctx,
+        sheet,
         EXPLOSION_FRAMES[exp.color][frameIndex],
         exp.x,
         exp.y,
@@ -369,11 +434,11 @@ export function createArkanoidEngine(
       );
     }
 
-    drawSprite(ctx, "paddle", paddle.x, paddle.y, paddle.w, paddle.h);
-    drawSprite(ctx, "ball", ball.x, ball.y, ball.w, ball.h);
+    drawSprite(ctx, sheet, "paddle", paddle.x, paddle.y, paddle.w, paddle.h);
+    drawSprite(ctx, sheet, "ball", ball.x, ball.y, ball.w, ball.h);
 
     if (gameState === "playing") {
-      ctx.fillStyle = "#fff";
+      ctx.fillStyle = pal.hudText;
       ctx.font = "bold 18px monospace";
       ctx.textAlign = "left";
       ctx.textBaseline = "top";
@@ -384,7 +449,7 @@ export function createArkanoidEngine(
       const ballSpacing = 4;
       for (let i = 0; i < lives; i++) {
         const bx = W - 10 - (lives - i) * (ballSize + ballSpacing);
-        drawSprite(ctx, "ball", bx, 10, ballSize, ballSize);
+        drawSprite(ctx, sheet, "ball", bx, 10, ballSize, ballSize);
       }
     }
 
@@ -405,12 +470,16 @@ export function createArkanoidEngine(
     draw();
   }
 
+  let started = false;
+
   loadSpritesheet(() => {
     if (disposed) return;
+    refreshSheet();
     initPaddle();
     callbacks.onScoreChange(score);
     callbacks.onLivesChange(lives);
     loadLevel(1);
+    started = true;
     rafId = requestAnimationFrame(loop);
   });
 
@@ -418,9 +487,17 @@ export function createArkanoidEngine(
     setPaused(p: boolean) {
       paused = p;
     },
-    // TODO(skin-designer): Arkanoid todavía no tiene paletas. No-op hasta que
-    // le toque su corrida — el contrato ya lo exige, la implementación no.
-    setSkin() {},
+    setSkin(next: SkinId) {
+      if (disposed || next === currentSkin) return;
+      currentSkin = next;
+      pal = GAME_PALETTES.arkanoid[currentSkin];
+      refreshSheet();
+      // Repintado inmediato. El loop de este juego dibuja todos los frames
+      // (solo saltea `update` en pausa), pero no se depende de eso: el cambio
+      // de skin es una acción del jugador y tiene que verse en el acto,
+      // incluso si el rAF está frenado porque la pestaña no está visible.
+      if (started) draw();
+    },
     destroy() {
       disposed = true;
       if (rafId !== null) cancelAnimationFrame(rafId);

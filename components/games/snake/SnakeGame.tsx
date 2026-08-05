@@ -6,6 +6,7 @@ import type { GameEngineProps } from "../types";
 
 export default function SnakeGame({
   paused,
+  skin,
   onScoreChange,
   onLivesChange,
   onLevelChange,
@@ -13,6 +14,9 @@ export default function SnakeGame({
 }: GameEngineProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<SnakeEngineHandle | null>(null);
+  // La skin inicial entra por ref para que el efecto que monta el motor no la
+  // lleve en sus dependencias: cambiar de skin repinta, nunca reinicia.
+  const skinRef = useRef(skin);
   const callbacksRef = useRef({
     onScoreChange,
     onLivesChange,
@@ -33,12 +37,16 @@ export default function SnakeGame({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const engine = createSnakeEngine(canvas, {
-      onScoreChange: (score) => callbacksRef.current.onScoreChange(score),
-      onLivesChange: (lives) => callbacksRef.current.onLivesChange(lives),
-      onLevelChange: (level) => callbacksRef.current.onLevelChange(level),
-      onGameOver: (finalScore) => callbacksRef.current.onGameOver(finalScore),
-    });
+    const engine = createSnakeEngine(
+      canvas,
+      {
+        onScoreChange: (score) => callbacksRef.current.onScoreChange(score),
+        onLivesChange: (lives) => callbacksRef.current.onLivesChange(lives),
+        onLevelChange: (level) => callbacksRef.current.onLevelChange(level),
+        onGameOver: (finalScore) => callbacksRef.current.onGameOver(finalScore),
+      },
+      skinRef.current
+    );
     engineRef.current = engine;
 
     return () => {
@@ -50,6 +58,11 @@ export default function SnakeGame({
   useEffect(() => {
     engineRef.current?.setPaused(paused);
   }, [paused]);
+
+  useEffect(() => {
+    skinRef.current = skin;
+    engineRef.current?.setSkin(skin);
+  }, [skin]);
 
   return (
     <div

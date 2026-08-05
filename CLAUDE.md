@@ -35,6 +35,7 @@ Arcade Vault ("arcade-vault") — a platform for playing games online and compet
 
 - `game-planner` (`.claude/agents/game-planner.md`) decide qué juego conviene agregar después: analiza el catálogo actual, `references/started-games/`, y las tablas `games`/`scores` de Supabase (solo lectura), propone 3-5 candidatos con costo/encaje/balance de categoría-color, y recomienda uno. Es el paso previo a `/add-game` cuando no hay un juego ya decidido.
 - Mantiene memoria entre corridas en `references/game-suggestions.md` (registro append-only de todo lo evaluado, incluidos descartes con su razón) y `references/game-suggestions-todo.md` (backlog accionable de candidatos vivos). Nunca escribe código ni specs, y nunca toca `references/implemented-games.md`.
+- `game-jam` (`.claude/agents/game-jam.md`) recibe un tema o idea y diseña un juego nuevo sin preguntar nada, decidiendo sola cada elección de diseño y dejándola anotada en `Decisions`. Escribe al menos dos specs `Draft` encadenados en `specs/game-jam/<game-id>/` (numeración continua con `specs/`, sin assets externos): uno con el juego terminado de punta a punta, y otro con una extensión opcional que puede no implementarse nunca. Es una alternativa automática a `/add-game` (que en cambio pregunta antes de escribir) para cuando ya tenés el tema y querés specs listos para revisar.
 
 ## Stack notes
 

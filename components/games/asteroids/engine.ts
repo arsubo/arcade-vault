@@ -346,7 +346,7 @@ export function createAsteroidsEngine(
 
   // La skin entra siempre como dato explícito. El motor jamás lee el DOM
   // (`getComputedStyle`) para averiguar un color.
-   
+
   let pal: AsteroidsPalette = GAME_PALETTES.asteroids[skin];
 
   // ── Input ───────────────────────────────────────────────────────────────
@@ -360,13 +360,20 @@ export function createAsteroidsEngine(
     "Space",
   ]);
 
+  function setKey(code: string, down: boolean) {
+    if (down) {
+      if (!keys[code]) justPressed[code] = true;
+      keys[code] = true;
+    } else {
+      keys[code] = false;
+    }
+  }
   function onKeyDown(e: KeyboardEvent) {
     if (GAME_KEYS.has(e.code)) e.preventDefault();
-    if (!keys[e.code]) justPressed[e.code] = true;
-    keys[e.code] = true;
+    setKey(e.code, true);
   }
   function onKeyUp(e: KeyboardEvent) {
-    keys[e.code] = false;
+    setKey(e.code, false);
   }
   window.addEventListener("keydown", onKeyDown);
   window.addEventListener("keyup", onKeyUp);
@@ -632,6 +639,9 @@ export function createAsteroidsEngine(
       // dibujar cuando está en pausa, y la pausa es justo el momento más
       // probable de que el jugador esté tocando el selector de skin.
       draw();
+    },
+    setVirtualKey(code: string, down: boolean) {
+      setKey(code, down);
     },
     destroy() {
       if (rafId !== null) cancelAnimationFrame(rafId);

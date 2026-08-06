@@ -1056,6 +1056,11 @@ a {
   margin-bottom: 18px;
   flex-wrap: wrap;
 }
+.hud-stats {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
 .hud-stat {
   display: flex;
   flex-direction: column;
@@ -1087,6 +1092,58 @@ a {
   gap: 10px;
 }
 
+/* Menú ⋮ del HUD compacto: oculto en escritorio, la franja normal (arriba)
+   sigue viéndose igual que siempre en ≥721px. */
+.hud-kebab {
+  display: none;
+  position: relative;
+}
+.hud-kebab-trigger {
+  padding: 10px 16px;
+  font-size: 16px;
+  line-height: 1;
+}
+.hud-kebab-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 200px;
+  padding: 14px;
+  background: var(--skin-hud-bg);
+  border: 1px solid var(--skin-hud-line);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+}
+.hud-kebab-menu .btn {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .player-hud {
+    flex-wrap: nowrap;
+    gap: 12px;
+    padding: 10px 14px;
+  }
+  .hud-stats {
+    gap: 14px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+  .hud-stat.player {
+    display: none;
+  }
+  .hud-actions {
+    display: none;
+  }
+  .hud-kebab {
+    display: block;
+  }
+}
+
 .crt {
   position: relative;
   border-radius: 28px;
@@ -1111,7 +1168,11 @@ a {
 }
 .crt-screen {
   position: relative;
-  aspect-ratio: 4 / 3;
+  /* Vía custom properties (no un literal `4 / 3`) para que el override móvil
+     de Tetris más abajo pueda cambiar la proporción sin duplicar la regla. */
+  --crt-ratio-w: 4;
+  --crt-ratio-h: 3;
+  aspect-ratio: var(--crt-ratio-w) / var(--crt-ratio-h);
   background: var(--skin-screen-bg);
   border-radius: 12px / 28px;
   overflow: hidden;
@@ -1153,6 +1214,46 @@ a {
   font-size: 12px;
   text-align: center;
 }
+
+/* En puntero grueso, el ancho de `.crt-screen` deja de ser "100% del `.crt`"
+   y pasa a derivarse de una altura máxima (`--crt-max-h`, en `dvh` para no
+   saltar con la barra de direcciones móvil): HUD + CRT + pad tienen que
+   entrar sin scroll. `--crt-ratio-w/h` sigue siendo la fuente de verdad del
+   alto real; acá solo se acota el ancho para que ese alto nunca crezca más
+   de la cuenta — por eso usa la MISMA proporción que `aspect-ratio` en vez
+   de un `4 / 3` fijo, para no desajustarse con el override de Tetris. */
+@media (pointer: coarse) {
+  .crt-screen {
+    width: min(
+      100%,
+      calc(var(--crt-max-h) * var(--crt-ratio-w) / var(--crt-ratio-h))
+    );
+    margin-inline: auto;
+  }
+}
+@media (pointer: coarse) and (orientation: portrait) {
+  .crt-screen {
+    --crt-max-h: 42dvh;
+  }
+}
+@media (pointer: coarse) and (orientation: landscape) {
+  .crt-screen {
+    --crt-max-h: 60dvh;
+  }
+}
+
+/* Excepción puntual para Tetris: su tablero es naturalmente vertical
+   (300×600 = 1:2), así que en 4:3 quedaba angosto con barras negras a los
+   costados. Solo en móvil y solo este juego — los otros 3 y el escritorio
+   siguen en 4:3. No toca el motor, el tamaño de los botones del pad ni la
+   ubicación de PAUSA/REGRESAR en el HUD. */
+@media (pointer: coarse) {
+  .av-player[data-game="tetris"] .crt-screen {
+    --crt-ratio-w: 1;
+    --crt-ratio-h: 2;
+  }
+}
+
 .crt-bottom {
   display: flex;
   align-items: center;
@@ -1335,6 +1436,118 @@ a {
   color: var(--skin-ink);
   border-color: currentColor;
   box-shadow: 0 0 8px rgba(var(--skin-accent-rgb), 0.3);
+}
+
+/* ===== pad táctil =============================================================
+   Oculto por defecto: solo existe en pantallas de puntero grueso. El layout
+   (cruz de 4 direcciones + A/B) es idéntico en los 4 juegos reales; lo único
+   que cambia por juego es qué botón queda inerte (ver GAME_TOUCH_CONTROLS). */
+.touch-pad {
+  display: none;
+  /* `clamp` con piso de 56px (mínimo táctil del spec): el pad se achica con
+     el viewport en vez de desbordar el margen horizontal en pantallas angostas. */
+  --touch-btn-size: clamp(56px, 15vw, 64px);
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 34px;
+  padding: 14px clamp(10px, 4vw, 22px);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 5vw, 28px);
+  border: 1px solid var(--skin-hud-line);
+  background: var(--skin-hud-bg);
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: contain;
+}
+@media (pointer: coarse) {
+  .touch-pad {
+    display: flex;
+  }
+}
+
+.touch-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--touch-btn-size));
+  grid-template-rows: repeat(3, var(--touch-btn-size));
+  gap: clamp(4px, 1.5vw, 6px);
+  flex: 0 0 auto;
+}
+.touch-dpad-up {
+  grid-column: 2;
+  grid-row: 1;
+}
+.touch-dpad-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+.touch-dpad-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+.touch-dpad-down {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.touch-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 4vw, 16px);
+  flex: 0 0 auto;
+}
+
+.touch-btn {
+  width: var(--touch-btn-size);
+  height: var(--touch-btn-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--pixel);
+  font-size: 16px;
+  color: var(--skin-accent);
+  background: rgba(var(--skin-accent-rgb), 0.08);
+  border: 1px solid var(--skin-accent);
+  border-radius: 10px;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 100ms ease,
+    transform 80ms ease,
+    box-shadow 160ms ease;
+}
+.touch-btn:active {
+  background: rgba(var(--skin-accent-rgb), 0.25);
+  box-shadow:
+    0 0 14px rgba(var(--skin-accent-rgb), 0.55),
+    inset 0 0 8px rgba(var(--skin-accent-rgb), 0.35);
+  transform: scale(0.94);
+}
+.touch-action-a,
+.touch-action-b {
+  border-radius: 50%;
+}
+.touch-action-a {
+  color: var(--skin-accent2);
+  background: rgba(var(--skin-accent2-rgb), 0.08);
+  border-color: var(--skin-accent2);
+}
+.touch-action-a:active {
+  background: rgba(var(--skin-accent2-rgb), 0.25);
+  box-shadow:
+    0 0 14px rgba(var(--skin-accent2-rgb), 0.55),
+    inset 0 0 8px rgba(var(--skin-accent2-rgb), 0.35);
+}
+.touch-btn--inert {
+  pointer-events: none;
+  opacity: 0.28;
+  color: var(--skin-ink-faint);
+  border-color: var(--skin-ink-faint);
+  background: transparent;
 }
 
 /* fake in-screen game */

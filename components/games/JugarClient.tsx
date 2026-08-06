@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Game } from "@/lib/games";
 import { GAME_REGISTRY } from "@/components/games/registry";
 import SkinPicker from "@/components/games/SkinPicker";
+import TouchControls from "@/components/games/TouchControls";
 import { useSkin } from "@/components/games/useSkin";
+import type { VirtualInput } from "@/components/games/types";
+import type { RealGameId } from "@/lib/real-games";
 import { submitScore } from "@/app/games/[id]/jugar/actions";
 
 export default function JugarClient({ game }: { game: Game }) {
@@ -21,6 +24,9 @@ export default function JugarClient({ game }: { game: Game }) {
   // NUEVO": cambiarla repinta en vivo, nunca reinicia la partida. Por eso no
   // aparece en `restart()`.
   const [skin, setSkin] = useSkin();
+  const inputRef = useRef<VirtualInput | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const [playerName, setPlayerName] = useState("");
   const [saveState, setSaveState] = useState<
@@ -36,6 +42,17 @@ export default function JugarClient({ game }: { game: Game }) {
     );
     return () => clearInterval(t);
   }, [over, paused, isRegistered]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [menuOpen]);
 
   const EngineComponent = GAME_REGISTRY[game.id];
   const level = isRegistered ? engineLevel : 1 + Math.floor(score / 2500);
@@ -65,10 +82,10 @@ export default function JugarClient({ game }: { game: Game }) {
   };
 
   return (
-    <div className="av-player fade-in" data-skin={skin}>
+    <div className="av-player fade-in" data-skin={skin} data-game={game.id}>
       <div className="player-hud">
-        <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-          <div className="hud-stat">
+        <div className="hud-stats">
+          <div className="hud-stat player">
             <div className="l">Jugador</div>
             <div className="v" style={{ color: "var(--ink)" }}>
               INVITADO
@@ -99,6 +116,56 @@ export default function JugarClient({ game }: { game: Game }) {
             SALIR
           </Link>
         </div>
+        <div className="hud-kebab" ref={menuRef}>
+          <button
+            type="button"
+            className="btn ghost hud-kebab-trigger"
+            aria-haspopup="true"
+            aria-expanded={menuOpen}
+            aria-label="Más opciones"
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            ⋮
+          </button>
+          {menuOpen && (
+            <div className="hud-kebab-menu" role="menu">
+              <SkinPicker
+                skin={skin}
+                onChange={(id) => {
+                  setSkin(id);
+                  setMenuOpen(false);
+                }}
+              />
+              <button
+                type="button"
+                className="btn yellow"
+                onClick={() => {
+                  setPaused((p) => !p);
+                  setMenuOpen(false);
+                }}
+              >
+                {paused ? "REANUDAR" : "PAUSA"}
+              </button>
+              <button
+                type="button"
+                className="btn magenta"
+                onClick={() => {
+                  endGame();
+                  setMenuOpen(false);
+                }}
+              >
+                FIN
+              </button>
+              <Link
+                href={`/games/${game.id}`}
+                className="btn ghost"
+                onClick={() => setMenuOpen(false)}
+              >
+                REGRESAR
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="crt">
@@ -108,6 +175,7 @@ export default function JugarClient({ game }: { game: Game }) {
               key={gameKey}
               paused={paused}
               skin={skin}
+              inputRef={inputRef}
               onScoreChange={setScore}
               onLivesChange={setLives}
               onLevelChange={setEngineLevel}
@@ -155,6 +223,14 @@ export default function JugarClient({ game }: { game: Game }) {
           <span>CARGA · 1MB</span>
         </div>
       </div>
+
+      {isRegistered && (
+        <TouchControls
+          gameId={game.id as RealGameId}
+          inputRef={inputRef}
+          paused={paused}
+        />
+      )}
 
       {over && (
         <div className="modal-bd">

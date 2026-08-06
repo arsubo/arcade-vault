@@ -7,6 +7,7 @@ import type { GameEngineProps } from "../types";
 export default function ArkanoidGame({
   paused,
   skin,
+  inputRef,
   onScoreChange,
   onLivesChange,
   onLevelChange,
@@ -48,12 +49,14 @@ export default function ArkanoidGame({
       initialSkinRef.current
     );
     engineRef.current = engine;
+    inputRef.current = { setVirtualKey: engine.setVirtualKey };
 
     return () => {
       engine.destroy();
       engineRef.current = null;
+      inputRef.current = null;
     };
-  }, []);
+  }, [inputRef]);
 
   useEffect(() => {
     engineRef.current?.setPaused(paused);

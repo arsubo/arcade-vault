@@ -1337,6 +1337,118 @@ a {
   box-shadow: 0 0 8px rgba(var(--skin-accent-rgb), 0.3);
 }
 
+/* ===== pad táctil =============================================================
+   Oculto por defecto: solo existe en pantallas de puntero grueso. El layout
+   (cruz de 4 direcciones + A/B) es idéntico en los 4 juegos reales; lo único
+   que cambia por juego es qué botón queda inerte (ver GAME_TOUCH_CONTROLS). */
+.touch-pad {
+  display: none;
+  /* `clamp` con piso de 56px (mínimo táctil del spec): el pad se achica con
+     el viewport en vez de desbordar el margen horizontal en pantallas angostas. */
+  --touch-btn-size: clamp(56px, 15vw, 64px);
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 18px;
+  padding: 14px clamp(10px, 4vw, 22px);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 5vw, 28px);
+  border: 1px solid var(--skin-hud-line);
+  background: var(--skin-hud-bg);
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: contain;
+}
+@media (pointer: coarse) {
+  .touch-pad {
+    display: flex;
+  }
+}
+
+.touch-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, var(--touch-btn-size));
+  grid-template-rows: repeat(3, var(--touch-btn-size));
+  gap: clamp(4px, 1.5vw, 6px);
+  flex: 0 0 auto;
+}
+.touch-dpad-up {
+  grid-column: 2;
+  grid-row: 1;
+}
+.touch-dpad-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+.touch-dpad-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+.touch-dpad-down {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+.touch-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 4vw, 16px);
+  flex: 0 0 auto;
+}
+
+.touch-btn {
+  width: var(--touch-btn-size);
+  height: var(--touch-btn-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--pixel);
+  font-size: 16px;
+  color: var(--skin-accent);
+  background: rgba(var(--skin-accent-rgb), 0.08);
+  border: 1px solid var(--skin-accent);
+  border-radius: 10px;
+  touch-action: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 100ms ease,
+    transform 80ms ease,
+    box-shadow 160ms ease;
+}
+.touch-btn:active {
+  background: rgba(var(--skin-accent-rgb), 0.25);
+  box-shadow:
+    0 0 14px rgba(var(--skin-accent-rgb), 0.55),
+    inset 0 0 8px rgba(var(--skin-accent-rgb), 0.35);
+  transform: scale(0.94);
+}
+.touch-action-a,
+.touch-action-b {
+  border-radius: 50%;
+}
+.touch-action-a {
+  color: var(--skin-accent2);
+  background: rgba(var(--skin-accent2-rgb), 0.08);
+  border-color: var(--skin-accent2);
+}
+.touch-action-a:active {
+  background: rgba(var(--skin-accent2-rgb), 0.25);
+  box-shadow:
+    0 0 14px rgba(var(--skin-accent2-rgb), 0.55),
+    inset 0 0 8px rgba(var(--skin-accent2-rgb), 0.35);
+}
+.touch-btn--inert {
+  pointer-events: none;
+  opacity: 0.28;
+  color: var(--skin-ink-faint);
+  border-color: var(--skin-ink-faint);
+  background: transparent;
+}
+
 /* fake in-screen game */
 .game-arena {
   position: absolute;

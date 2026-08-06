@@ -5,8 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import type { Game } from "@/lib/games";
 import { GAME_REGISTRY } from "@/components/games/registry";
 import SkinPicker from "@/components/games/SkinPicker";
+import TouchControls from "@/components/games/TouchControls";
 import { useSkin } from "@/components/games/useSkin";
 import type { VirtualInput } from "@/components/games/types";
+import type { RealGameId } from "@/lib/real-games";
 import { submitScore } from "@/app/games/[id]/jugar/actions";
 
 export default function JugarClient({ game }: { game: Game }) {
@@ -158,6 +160,14 @@ export default function JugarClient({ game }: { game: Game }) {
           <span>CARGA · 1MB</span>
         </div>
       </div>
+
+      {isRegistered && (
+        <TouchControls
+          gameId={game.id as RealGameId}
+          inputRef={inputRef}
+          paused={paused}
+        />
+      )}
 
       {over && (
         <div className="modal-bd">

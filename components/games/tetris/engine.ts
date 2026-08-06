@@ -107,10 +107,9 @@ export function createTetrisEngine(
     "KeyX",
   ]);
 
-  function onKeyDown(e: KeyboardEvent) {
-    if (GAME_KEYS.has(e.code)) e.preventDefault();
+  function handleAction(code: string) {
     if (paused || gameOver) return;
-    switch (e.code) {
+    switch (code) {
       case "ArrowLeft":
         if (!collide(current.shape, current.x - 1, current.y)) current.x--;
         break;
@@ -128,6 +127,10 @@ export function createTetrisEngine(
         hardDrop();
         break;
     }
+  }
+  function onKeyDown(e: KeyboardEvent) {
+    if (GAME_KEYS.has(e.code)) e.preventDefault();
+    handleAction(e.code);
   }
   window.addEventListener("keydown", onKeyDown);
 
@@ -411,6 +414,9 @@ export function createTetrisEngine(
       // se vería tarde o a medias.
       draw();
       drawNext();
+    },
+    setVirtualKey(code: string, down: boolean) {
+      if (down) handleAction(code);
     },
     destroy() {
       if (rafId !== null) cancelAnimationFrame(rafId);

@@ -184,12 +184,17 @@ export function createSnakeEngine(
   }
 
   // ── Input ───────────────────────────────────────────────────────────────
-  function onKeyDown(e: KeyboardEvent) {
-    const dir = KEY_TO_DIRECTION[e.code];
+  function applyDirection(code: string) {
+    const dir = KEY_TO_DIRECTION[code];
     if (!dir) return;
-    e.preventDefault();
     if (dir === OPPOSITE[direction]) return;
     queuedDirection = dir;
+  }
+
+  function onKeyDown(e: KeyboardEvent) {
+    if (!KEY_TO_DIRECTION[e.code]) return;
+    e.preventDefault();
+    applyDirection(e.code);
   }
 
   document.addEventListener("keydown", onKeyDown);
@@ -343,6 +348,9 @@ export function createSnakeEngine(
       // suele tocar el selector con la partida en pausa, y el cambio de skin
       // nunca reinicia ni altera el estado del juego.
       draw();
+    },
+    setVirtualKey(code: string, down: boolean) {
+      if (down) applyDirection(code);
     },
     destroy() {
       if (rafId !== null) cancelAnimationFrame(rafId);

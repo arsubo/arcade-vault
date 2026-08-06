@@ -498,6 +498,9 @@ export function createArkanoidEngine(
       // incluso si el rAF está frenado porque la pestaña no está visible.
       if (started) draw();
     },
+    setVirtualKey(code: string, down: boolean) {
+      if (code in keys) keys[code] = down;
+    },
     destroy() {
       disposed = true;
       if (rafId !== null) cancelAnimationFrame(rafId);

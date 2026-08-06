@@ -1056,6 +1056,11 @@ a {
   margin-bottom: 18px;
   flex-wrap: wrap;
 }
+.hud-stats {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
 .hud-stat {
   display: flex;
   flex-direction: column;
@@ -1085,6 +1090,58 @@ a {
 .hud-actions {
   display: flex;
   gap: 10px;
+}
+
+/* Menú ⋮ del HUD compacto: oculto en escritorio, la franja normal (arriba)
+   sigue viéndose igual que siempre en ≥721px. */
+.hud-kebab {
+  display: none;
+  position: relative;
+}
+.hud-kebab-trigger {
+  padding: 10px 16px;
+  font-size: 16px;
+  line-height: 1;
+}
+.hud-kebab-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  min-width: 200px;
+  padding: 14px;
+  background: var(--skin-hud-bg);
+  border: 1px solid var(--skin-hud-line);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
+}
+.hud-kebab-menu .btn {
+  width: 100%;
+}
+
+@media (max-width: 720px) {
+  .player-hud {
+    flex-wrap: nowrap;
+    gap: 12px;
+    padding: 10px 14px;
+  }
+  .hud-stats {
+    gap: 14px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+  .hud-stat.player {
+    display: none;
+  }
+  .hud-actions {
+    display: none;
+  }
+  .hud-kebab {
+    display: block;
+  }
 }
 
 .crt {

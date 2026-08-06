@@ -25,6 +25,8 @@ export default function JugarClient({ game }: { game: Game }) {
   // aparece en `restart()`.
   const [skin, setSkin] = useSkin();
   const inputRef = useRef<VirtualInput | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const [playerName, setPlayerName] = useState("");
   const [saveState, setSaveState] = useState<
@@ -40,6 +42,17 @@ export default function JugarClient({ game }: { game: Game }) {
     );
     return () => clearInterval(t);
   }, [over, paused, isRegistered]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function onPointerDown(e: PointerEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [menuOpen]);
 
   const EngineComponent = GAME_REGISTRY[game.id];
   const level = isRegistered ? engineLevel : 1 + Math.floor(score / 2500);
@@ -71,8 +84,8 @@ export default function JugarClient({ game }: { game: Game }) {
   return (
     <div className="av-player fade-in" data-skin={skin}>
       <div className="player-hud">
-        <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
-          <div className="hud-stat">
+        <div className="hud-stats">
+          <div className="hud-stat player">
             <div className="l">Jugador</div>
             <div className="v" style={{ color: "var(--ink)" }}>
               INVITADO
@@ -102,6 +115,56 @@ export default function JugarClient({ game }: { game: Game }) {
           <Link href={`/games/${game.id}`} className="btn ghost">
             SALIR
           </Link>
+        </div>
+        <div className="hud-kebab" ref={menuRef}>
+          <button
+            type="button"
+            className="btn ghost hud-kebab-trigger"
+            aria-haspopup="true"
+            aria-expanded={menuOpen}
+            aria-label="Más opciones"
+            onClick={() => setMenuOpen((o) => !o)}
+          >
+            ⋮
+          </button>
+          {menuOpen && (
+            <div className="hud-kebab-menu" role="menu">
+              <SkinPicker
+                skin={skin}
+                onChange={(id) => {
+                  setSkin(id);
+                  setMenuOpen(false);
+                }}
+              />
+              <button
+                type="button"
+                className="btn yellow"
+                onClick={() => {
+                  setPaused((p) => !p);
+                  setMenuOpen(false);
+                }}
+              >
+                {paused ? "REANUDAR" : "PAUSA"}
+              </button>
+              <button
+                type="button"
+                className="btn magenta"
+                onClick={() => {
+                  endGame();
+                  setMenuOpen(false);
+                }}
+              >
+                FIN
+              </button>
+              <Link
+                href={`/games/${game.id}`}
+                className="btn ghost"
+                onClick={() => setMenuOpen(false)}
+              >
+                SALIR
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

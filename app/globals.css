@@ -1168,7 +1168,11 @@ a {
 }
 .crt-screen {
   position: relative;
-  aspect-ratio: 4 / 3;
+  /* Vía custom properties (no un literal `4 / 3`) para que el override móvil
+     de Tetris más abajo pueda cambiar la proporción sin duplicar la regla. */
+  --crt-ratio-w: 4;
+  --crt-ratio-h: 3;
+  aspect-ratio: var(--crt-ratio-w) / var(--crt-ratio-h);
   background: var(--skin-screen-bg);
   border-radius: 12px / 28px;
   overflow: hidden;
@@ -1210,6 +1214,46 @@ a {
   font-size: 12px;
   text-align: center;
 }
+
+/* En puntero grueso, el ancho de `.crt-screen` deja de ser "100% del `.crt`"
+   y pasa a derivarse de una altura máxima (`--crt-max-h`, en `dvh` para no
+   saltar con la barra de direcciones móvil): HUD + CRT + pad tienen que
+   entrar sin scroll. `--crt-ratio-w/h` sigue siendo la fuente de verdad del
+   alto real; acá solo se acota el ancho para que ese alto nunca crezca más
+   de la cuenta — por eso usa la MISMA proporción que `aspect-ratio` en vez
+   de un `4 / 3` fijo, para no desajustarse con el override de Tetris. */
+@media (pointer: coarse) {
+  .crt-screen {
+    width: min(
+      100%,
+      calc(var(--crt-max-h) * var(--crt-ratio-w) / var(--crt-ratio-h))
+    );
+    margin-inline: auto;
+  }
+}
+@media (pointer: coarse) and (orientation: portrait) {
+  .crt-screen {
+    --crt-max-h: 42dvh;
+  }
+}
+@media (pointer: coarse) and (orientation: landscape) {
+  .crt-screen {
+    --crt-max-h: 60dvh;
+  }
+}
+
+/* Excepción puntual para Tetris: su tablero es naturalmente vertical
+   (300×600 = 1:2), así que en 4:3 quedaba angosto con barras negras a los
+   costados. Solo en móvil y solo este juego — los otros 3 y el escritorio
+   siguen en 4:3. No toca el motor, el tamaño de los botones del pad ni la
+   ubicación de PAUSA/REGRESAR en el HUD. */
+@media (pointer: coarse) {
+  .av-player[data-game="tetris"] .crt-screen {
+    --crt-ratio-w: 1;
+    --crt-ratio-h: 2;
+  }
+}
+
 .crt-bottom {
   display: flex;
   align-items: center;
@@ -1405,7 +1449,7 @@ a {
   --touch-btn-size: clamp(56px, 15vw, 64px);
   box-sizing: border-box;
   width: 100%;
-  margin-top: 18px;
+  margin-top: 34px;
   padding: 14px clamp(10px, 4vw, 22px);
   flex-wrap: wrap;
   align-items: center;

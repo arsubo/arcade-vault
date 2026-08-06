@@ -82,7 +82,7 @@ export default function JugarClient({ game }: { game: Game }) {
   };
 
   return (
-    <div className="av-player fade-in" data-skin={skin}>
+    <div className="av-player fade-in" data-skin={skin} data-game={game.id}>
       <div className="player-hud">
         <div className="hud-stats">
           <div className="hud-stat player">
@@ -161,7 +161,7 @@ export default function JugarClient({ game }: { game: Game }) {
                 className="btn ghost"
                 onClick={() => setMenuOpen(false)}
               >
-                SALIR
+                REGRESAR
               </Link>
             </div>
           )}

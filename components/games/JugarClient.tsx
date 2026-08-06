@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Game } from "@/lib/games";
 import { GAME_REGISTRY } from "@/components/games/registry";
 import SkinPicker from "@/components/games/SkinPicker";
 import { useSkin } from "@/components/games/useSkin";
+import type { VirtualInput } from "@/components/games/types";
 import { submitScore } from "@/app/games/[id]/jugar/actions";
 
 export default function JugarClient({ game }: { game: Game }) {
@@ -21,6 +22,7 @@ export default function JugarClient({ game }: { game: Game }) {
   // NUEVO": cambiarla repinta en vivo, nunca reinicia la partida. Por eso no
   // aparece en `restart()`.
   const [skin, setSkin] = useSkin();
+  const inputRef = useRef<VirtualInput | null>(null);
 
   const [playerName, setPlayerName] = useState("");
   const [saveState, setSaveState] = useState<
@@ -108,6 +110,7 @@ export default function JugarClient({ game }: { game: Game }) {
               key={gameKey}
               paused={paused}
               skin={skin}
+              inputRef={inputRef}
               onScoreChange={setScore}
               onLivesChange={setLives}
               onLevelChange={setEngineLevel}

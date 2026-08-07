@@ -3,12 +3,14 @@
 // celdas de 40px dividida en 5 zonas fijas por fila: metas (0), río (1-6),
 // zona segura media (7), carretera (8-12), inicio (13).
 //
-// El motor todavía no tiene paleta por skin (lib/skins.ts no incluye
-// GAME_PALETTES.frogger) ni pad táctil cableado: setSkin/setVirtualKey son
-// no-op a propósito, listos para que skin-designer y mobile-porter los
-// implementen cuando les toque este juego.
+// Todo el color sale de `GAME_PALETTES.frogger` (lib/skins.ts) y entra como
+// dato explícito por el parámetro `skin` — el motor nunca lee el DOM para
+// averiguar de qué color pintar. El pad táctil todavía no está cableado:
+// setVirtualKey es no-op a propósito, listo para mobile-porter.
 
+import { GAME_PALETTES, type SkinId } from "@/lib/skins";
 import type { GameEngineHandle } from "../types";
+import type { FroggerPalette } from "./palette";
 
 export const COLS = 16;
 export const ROWS = 14;
@@ -187,9 +189,14 @@ export interface FroggerCallbacks {
 
 export type FroggerEngineHandle = GameEngineHandle;
 
+function paletteFor(skin: SkinId): FroggerPalette {
+  return GAME_PALETTES.frogger[skin];
+}
+
 export function createFroggerEngine(
   canvas: HTMLCanvasElement,
-  callbacks: FroggerCallbacks
+  callbacks: FroggerCallbacks,
+  skin: SkinId
 ): FroggerEngineHandle {
   const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
   if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas.");
@@ -403,16 +410,17 @@ export function createFroggerEngine(
   }
 
   // ── Draw ────────────────────────────────────────────────────────────────
-  // Estética "neón sobre cristal negro": fondos casi negros, formas con
-  // contorno brillante (shadowBlur) en vez de relleno sólido.
-  const NEON_DARK = "#050507";
-  const NEON_SAFE = "#1fae3f";
-  const NEON_GOAL_BG = "#04140a";
-  const NEON_GOAL_BORDER = "#d4af37";
-  const NEON_GREEN = "#22ff66";
-  const NEON_LOG = "#c9862e";
-  const NEON_LANE_LINE = "rgba(255, 255, 255, 0.14)";
-  const CAR_COLORS = ["#28d6ff", "#3d7bff", "#ffd400", "#ff2fd6", "#ff3b3b"];
+  // La estética de cada skin la fija la paleta; la geometría (contornos con
+  // shadowBlur en vez de relleno sólido) es del motor y no cambia.
+  // `let`: `setSkin` la reasigna en vivo (no es `const` aunque el linter lo
+  // sugiera mirando solo hasta acá).
+  let pal = paletteFor(skin);
+
+  /** `rgba(...)` de la tortuga compuesto al vuelo: su alpha es dinámico. */
+  function turtleColor(alpha: number): string {
+    const [r, g, b] = pal.turtle;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
 
   function glow(color: string, blur: number, paint: () => void) {
     ctx.save();
@@ -423,10 +431,10 @@ export function createFroggerEngine(
   }
 
   function zoneColor(row: number): string {
-    if (row === ROW_GOALS) return NEON_GOAL_BG;
-    if (row >= ROW_RIVER_TOP && row <= ROW_RIVER_BOT) return NEON_DARK;
-    if (row === ROW_SAFE_MID || row === ROW_START) return NEON_SAFE;
-    return NEON_DARK;
+    if (row === ROW_GOALS) return pal.goalBg;
+    if (row >= ROW_RIVER_TOP && row <= ROW_RIVER_BOT) return pal.riverBg;
+    if (row === ROW_SAFE_MID || row === ROW_START) return pal.safeBg;
+    return pal.roadBg;
   }
 
   function drawBackground() {
@@ -442,14 +450,14 @@ export function createFroggerEngine(
       const x = startCol * CELL;
       const y = ROW_GOALS * CELL;
       const w = GOAL_WIDTH_COLS * CELL;
-      glow(NEON_GOAL_BORDER, 6, () => {
-        ctx.strokeStyle = NEON_GOAL_BORDER;
+      glow(pal.goalBorder, 6, () => {
+        ctx.strokeStyle = pal.goalBorder;
         ctx.lineWidth = 2;
         ctx.strokeRect(x + 2, y + 2, w - 4, CELL - 4);
       });
       if (goals[i]) {
-        glow(NEON_GREEN, 8, () => {
-          ctx.fillStyle = NEON_GREEN;
+        glow(pal.goalFilled, 8, () => {
+          ctx.fillStyle = pal.goalFilled;
           ctx.beginPath();
           ctx.ellipse(x + w / 2, y + CELL / 2, 10, 8, 0, 0, Math.PI * 2);
           ctx.fill();
@@ -460,7 +468,7 @@ export function createFroggerEngine(
 
   function drawLaneDividers() {
     ctx.save();
-    ctx.strokeStyle = NEON_LANE_LINE;
+    ctx.strokeStyle = pal.laneLine;
     ctx.lineWidth = 2;
     ctx.setLineDash([10, 10]);
     for (const row of [...ROAD_ROWS, ...RIVER_ROWS]) {
@@ -474,13 +482,13 @@ export function createFroggerEngine(
   }
 
   function carColorIndex(e: Entity): number {
-    return Math.abs(Math.round(e.col)) % CAR_COLORS.length;
+    return Math.abs(Math.round(e.col)) % pal.cars.length;
   }
 
   function drawEntity(e: Entity, row: number) {
     const y = row * CELL;
     if (e.type === "car" || e.type === "truck") {
-      const color = CAR_COLORS[carColorIndex(e)];
+      const color = pal.cars[carColorIndex(e)];
       glow(color, 10, () => {
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
@@ -495,8 +503,8 @@ export function createFroggerEngine(
         }
       });
     } else if (e.type === "log") {
-      glow(NEON_LOG, 6, () => {
-        ctx.strokeStyle = NEON_LOG;
+      glow(pal.log, 6, () => {
+        ctx.strokeStyle = pal.log;
         ctx.lineWidth = 2;
         ctx.strokeRect(e.col + 1, y + 8, e.width - 2, CELL - 16);
         for (let lx = e.col + 10; lx < e.col + e.width - 4; lx += 14) {
@@ -509,8 +517,8 @@ export function createFroggerEngine(
     } else {
       const alpha = e.submerged ? 0.25 : 1;
       const groupCells = Math.round(e.width / CELL);
-      glow(NEON_GREEN, e.submerged ? 0 : 12, () => {
-        ctx.fillStyle = `rgba(34, 255, 102, ${alpha})`;
+      glow(turtleColor(1), e.submerged ? 0 : 12, () => {
+        ctx.fillStyle = turtleColor(alpha);
         for (let i = 0; i < groupCells; i++) {
           ctx.beginPath();
           ctx.ellipse(
@@ -536,19 +544,19 @@ export function createFroggerEngine(
     const cy = visualRow * CELL + CELL / 2;
     const hop = frog.animating ? Math.sin(Math.PI * t) * 6 : 0;
 
-    glow(NEON_GREEN, 14, () => {
-      ctx.fillStyle = NEON_GREEN;
+    glow(pal.frog, 14, () => {
+      ctx.fillStyle = pal.frog;
       ctx.beginPath();
       ctx.ellipse(cx, cy - hop, 14, 12, 0, 0, Math.PI * 2);
       ctx.fill();
     });
 
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = pal.frogEye;
     ctx.beginPath();
     ctx.arc(cx - 5, cy - hop - 6, 3, 0, Math.PI * 2);
     ctx.arc(cx + 5, cy - hop - 6, 3, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#0a0a0a";
+    ctx.fillStyle = pal.frogPupil;
     ctx.beginPath();
     ctx.arc(cx - 5, cy - hop - 6, 1.4, 0, Math.PI * 2);
     ctx.arc(cx + 5, cy - hop - 6, 1.4, 0, Math.PI * 2);
@@ -560,14 +568,14 @@ export function createFroggerEngine(
     ctx.textBaseline = "middle";
 
     ctx.textAlign = "left";
-    glow("#7be6ff", 6, () => {
-      ctx.fillStyle = "#c9f7ff";
+    glow(pal.hudScoreGlow, 6, () => {
+      ctx.fillStyle = pal.hudScore;
       ctx.fillText(`SCORE ${String(score).padStart(6, "0")}`, 8, CELL / 2);
     });
 
     ctx.textAlign = "center";
-    glow("#ff2fd6", 6, () => {
-      ctx.fillStyle = "#ff8ae8";
+    glow(pal.hudLevelGlow, 6, () => {
+      ctx.fillStyle = pal.hudLevel;
       ctx.fillText(
         `LVL ${String(level).padStart(2, "0")}`,
         CANVAS_W / 2,
@@ -577,8 +585,8 @@ export function createFroggerEngine(
 
     ctx.textAlign = "right";
     for (let i = 0; i < lives; i++) {
-      glow(NEON_GREEN, 8, () => {
-        ctx.fillStyle = NEON_GREEN;
+      glow(pal.lifeIcon, 8, () => {
+        ctx.fillStyle = pal.lifeIcon;
         ctx.beginPath();
         ctx.arc(CANVAS_W - 12 - i * 18, CELL / 2, 6, 0, Math.PI * 2);
         ctx.fill();
@@ -587,7 +595,7 @@ export function createFroggerEngine(
 
     const frac = Math.max(0, roundTimer / currentRoundMs);
     const timeColor =
-      frac > 0.5 ? NEON_GREEN : frac > 0.25 ? "#ffd400" : "#ff3b3b";
+      frac > 0.5 ? pal.timeOk : frac > 0.25 ? pal.timeWarn : pal.timeDanger;
     glow(timeColor, 8, () => {
       ctx.fillStyle = timeColor;
       ctx.fillRect(0, 0, CANVAS_W * frac, 4);
@@ -631,8 +639,12 @@ export function createFroggerEngine(
     setPaused(p: boolean) {
       paused = p;
     },
-    setSkin() {
-      // No-op: Frogger todavía no tiene paleta por skin (skin-designer la agrega).
+    setSkin(next: SkinId) {
+      pal = paletteFor(next);
+      // Repintado inmediato en vez de esperar al próximo frame: el jugador
+      // suele tocar el selector con la partida en pausa, y el cambio de skin
+      // repinta en vivo — nunca reinicia ni altera el estado del juego.
+      draw();
     },
     setVirtualKey() {
       // No-op: el pad táctil lo cablea mobile-porter.

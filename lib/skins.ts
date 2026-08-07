@@ -64,6 +64,16 @@
 //     comida=ok · muro=neutral · grilla=grid
 //   · arkanoid   → paleta=accent · bola=accent2 · ladrillos=scale[0..7] ·
 //     power-ups=ok · HUD=ink
+//   · frogger    → rana=accent · ojo=ink/pupila=bg · tortuga=rgb(ok) ·
+//     tronco=scale[2] · autos=scale[3,1,7,5]+danger · franja segura=scale[0] ·
+//     fondos de zona=bg · borde de meta=warn · meta conquistada=ok ·
+//     divisorias=grid · HUD=ink/accent2 · barra de tiempo=ok/warn/danger
+//
+//   EXCEPCIÓN de Frogger sobre la tabla: la "franja segura" es un FONDO de
+//   fila, no un objeto, y no hay slot de fondo secundario en la rampa. Usa
+//   `scale[0]` (el escalón más oscuro de las dos rampas) porque es el único
+//   valor que se despega del fondo sin competir con la rana que se para
+//   encima.
 // ============================================================================
 
 // Ruta relativa a propósito (no el alias `@/`): `scripts/check-skin-contrast.mjs`
@@ -71,6 +81,7 @@
 // alias de `tsconfig.json`.
 import type { ArkanoidPalette } from "../components/games/arkanoid/palette";
 import type { AsteroidsPalette } from "../components/games/asteroids/palette";
+import type { FroggerPalette } from "../components/games/frogger/palette";
 import type { SnakePalette } from "../components/games/snake/palette";
 import type { TetrisPalette } from "../components/games/tetris/palette";
 
@@ -258,6 +269,7 @@ export interface GamePalettes {
   tetris: Record<SkinId, TetrisPalette>;
   arkanoid: Record<SkinId, ArkanoidPalette>;
   snake: Record<SkinId, SnakePalette>;
+  frogger: Record<SkinId, FroggerPalette>;
 }
 
 // Mapeo intercalado I O T S Z J L N → scale[0 4 1 5 2 6 3 7]: alterna entre las
@@ -266,6 +278,16 @@ export interface GamePalettes {
 function tetrisPieces(skin: SkinId): TetrisPalette["pieces"] {
   const s = SKIN_RAMP[skin].scale;
   return [s[0], s[4], s[1], s[5], s[2], s[6], s[3], s[7]];
+}
+
+// Los 5 vehículos evitan a propósito los escalones que ya ocupan la rana
+// (`accent`, que es `scale[4]` en neon y `scale[6]` en retro), el tronco
+// (`scale[2]`) y la franja segura (`scale[0]`): si un auto compartiera color
+// con la rana, la carretera dejaría de leerse de un vistazo. El quinto usa
+// `danger` — es el heredero del auto rojo del original.
+function froggerCars(skin: SkinId): FroggerPalette["cars"] {
+  const r = SKIN_RAMP[skin];
+  return [r.scale[3], r.scale[1], r.scale[7], r.scale[5], r.danger];
 }
 
 export const GAME_PALETTES: GamePalettes = {
@@ -473,6 +495,87 @@ export const GAME_PALETTES: GamePalettes = {
       fruitPlate: SKIN_RAMP.retro.danger,
     },
   },
+
+  frogger: {
+    // Copia literal, carácter por carácter, de las constantes de dibujo que
+    // `components/games/frogger/engine.ts` tenía hardcodeadas (NEON_DARK,
+    // NEON_SAFE, NEON_GOAL_BG, NEON_GOAL_BORDER, NEON_GREEN, NEON_LOG,
+    // NEON_LANE_LINE, CAR_COLORS y los literales sueltos del ojo, el HUD y la
+    // barra de tiempo). El motor ya nacía con estética "neón sobre cristal
+    // negro" propia; eso NO lo convierte en la skin `neon` — es su look
+    // original y por contrato se conserva intacto acá.
+    clasico: {
+      riverBg: "#050507",
+      roadBg: "#050507",
+      goalBg: "#04140a",
+      safeBg: "#1fae3f",
+      goalBorder: "#d4af37",
+      goalFilled: "#22ff66",
+      frog: "#22ff66",
+      frogEye: "#ffffff",
+      frogPupil: "#0a0a0a",
+      // Era `rgba(34, 255, 102, ${alpha})`: mismo verde que la rana, con alpha
+      // dinámico según esté emergida o sumergida.
+      turtle: [34, 255, 102],
+      log: "#c9862e",
+      cars: ["#28d6ff", "#3d7bff", "#ffd400", "#ff2fd6", "#ff3b3b"],
+      laneLine: "rgba(255, 255, 255, 0.14)",
+      hudScore: "#c9f7ff",
+      hudScoreGlow: "#7be6ff",
+      hudLevel: "#ff8ae8",
+      hudLevelGlow: "#ff2fd6",
+      lifeIcon: "#22ff66",
+      timeOk: "#22ff66",
+      timeWarn: "#ffd400",
+      timeDanger: "#ff3b3b",
+    },
+    neon: {
+      riverBg: SKIN_RAMP.neon.bg,
+      roadBg: SKIN_RAMP.neon.bg,
+      goalBg: SKIN_RAMP.neon.bg,
+      safeBg: SKIN_RAMP.neon.scale[0],
+      goalBorder: SKIN_RAMP.neon.warn,
+      goalFilled: SKIN_RAMP.neon.ok,
+      frog: SKIN_RAMP.neon.accent,
+      frogEye: SKIN_RAMP.neon.ink,
+      frogPupil: SKIN_RAMP.neon.bg,
+      turtle: hexToRgb(SKIN_RAMP.neon.ok),
+      log: SKIN_RAMP.neon.scale[2],
+      cars: froggerCars("neon"),
+      laneLine: SKIN_RAMP.neon.grid,
+      hudScore: SKIN_RAMP.neon.ink,
+      hudScoreGlow: SKIN_RAMP.neon.accent,
+      hudLevel: SKIN_RAMP.neon.accent2,
+      hudLevelGlow: SKIN_RAMP.neon.accent2,
+      lifeIcon: SKIN_RAMP.neon.ok,
+      timeOk: SKIN_RAMP.neon.ok,
+      timeWarn: SKIN_RAMP.neon.warn,
+      timeDanger: SKIN_RAMP.neon.danger,
+    },
+    retro: {
+      riverBg: SKIN_RAMP.retro.bg,
+      roadBg: SKIN_RAMP.retro.bg,
+      goalBg: SKIN_RAMP.retro.bg,
+      safeBg: SKIN_RAMP.retro.scale[0],
+      goalBorder: SKIN_RAMP.retro.warn,
+      goalFilled: SKIN_RAMP.retro.ok,
+      frog: SKIN_RAMP.retro.accent,
+      frogEye: SKIN_RAMP.retro.ink,
+      frogPupil: SKIN_RAMP.retro.bg,
+      turtle: hexToRgb(SKIN_RAMP.retro.ok),
+      log: SKIN_RAMP.retro.scale[2],
+      cars: froggerCars("retro"),
+      laneLine: SKIN_RAMP.retro.grid,
+      hudScore: SKIN_RAMP.retro.ink,
+      hudScoreGlow: SKIN_RAMP.retro.accent,
+      hudLevel: SKIN_RAMP.retro.accent2,
+      hudLevelGlow: SKIN_RAMP.retro.accent,
+      lifeIcon: SKIN_RAMP.retro.ok,
+      timeOk: SKIN_RAMP.retro.ok,
+      timeWarn: SKIN_RAMP.retro.warn,
+      timeDanger: SKIN_RAMP.retro.danger,
+    },
+  },
 };
 
 // ── Contrato de contraste ───────────────────────────────────────────────────
@@ -656,5 +759,55 @@ export const GAME_CONTRAST_RULES: Record<string, readonly ContrastRule[]> = {
     { token: "fruitPlate", against: "body", kind: "sibling" },
     { token: "fruitPlate", against: "head", kind: "sibling" },
     { token: "gridLine", against: "boardBg", kind: "decor" },
+  ],
+
+  frogger: [
+    // La rana tiene que leerse en las tres zonas por las que pasa.
+    { token: "frog", against: "roadBg", kind: "play" },
+    { token: "frog", against: "riverBg", kind: "play" },
+    { token: "frog", against: "goalBg", kind: "play" },
+    // Plataformas y obstáculos contra el fondo de su zona.
+    { token: "turtle", against: "riverBg", kind: "play" },
+    { token: "log", against: "riverBg", kind: "play" },
+    { token: "cars.0", against: "roadBg", kind: "play" },
+    { token: "cars.1", against: "roadBg", kind: "play" },
+    { token: "cars.2", against: "roadBg", kind: "play" },
+    { token: "cars.3", against: "roadBg", kind: "play" },
+    { token: "cars.4", against: "roadBg", kind: "play" },
+    // Fila de metas.
+    { token: "goalBorder", against: "goalBg", kind: "play" },
+    { token: "goalFilled", against: "goalBg", kind: "play" },
+    // HUD, vidas y barra de tiempo: todos se dibujan DENTRO de la fila de
+    // metas, así que su fondo real es `goalBg`, no el asfalto.
+    { token: "hudScore", against: "goalBg", kind: "text" },
+    { token: "hudLevel", against: "goalBg", kind: "text" },
+    { token: "lifeIcon", against: "goalBg", kind: "play" },
+    { token: "timeOk", against: "goalBg", kind: "play" },
+    { token: "timeWarn", against: "goalBg", kind: "play" },
+    { token: "timeDanger", against: "goalBg", kind: "play" },
+    // La pupila se dibuja encima de la esclerótica, no del tablero.
+    //
+    // NO se declara la esclerótica contra el cuerpo de la rana: en `clasico`
+    // el blanco puro sobre el verde brillante da 1.35:1, por debajo incluso
+    // del piso `sibling`, y `clasico` es intocable por contrato. Los ojos se
+    // leen por forma y por la pupila oscura de adentro, no por su contraste
+    // contra el cuerpo.
+    { token: "frogPupil", against: "frogEye", kind: "play" },
+    // La franja segura es un FONDO, no un objeto: no se le exige `play`. Lo
+    // único que importa es que se despegue del asfalto y que la rana siga
+    // leyéndose parada encima (en `clasico` esa relación es de 2.17:1 —
+    // verde sobre verde —, así que el umbral posible es `sibling`).
+    { token: "safeBg", against: "roadBg", kind: "sibling" },
+    { token: "frog", against: "safeBg", kind: "sibling" },
+    // La rana pasa la mitad del nivel parada sobre un tronco.
+    { token: "frog", against: "log", kind: "sibling" },
+    // Sin `sibling` entre vehículos, ni entre vehículo y rana: el color del
+    // auto no significa nada mecánicamente (todos matan igual, como los
+    // ladrillos de Arkanoid) y el original ya empareja la rana verde con el
+    // auto amarillo en 1.06:1, así que exigirlo haría fallar a `clasico`.
+    // Tampoco `frog` vs `turtle`: en `clasico` son literalmente el mismo
+    // "#22ff66".
+    { token: "laneLine", against: "roadBg", kind: "decor" },
+    { token: "laneLine", against: "riverBg", kind: "decor" },
   ],
 };

@@ -403,11 +403,30 @@ export function createFroggerEngine(
   }
 
   // ── Draw ────────────────────────────────────────────────────────────────
+  // Estética "neón sobre cristal negro": fondos casi negros, formas con
+  // contorno brillante (shadowBlur) en vez de relleno sólido.
+  const NEON_DARK = "#050507";
+  const NEON_SAFE = "#1fae3f";
+  const NEON_GOAL_BG = "#04140a";
+  const NEON_GOAL_BORDER = "#d4af37";
+  const NEON_GREEN = "#22ff66";
+  const NEON_LOG = "#c9862e";
+  const NEON_LANE_LINE = "rgba(255, 255, 255, 0.14)";
+  const CAR_COLORS = ["#28d6ff", "#3d7bff", "#ffd400", "#ff2fd6", "#ff3b3b"];
+
+  function glow(color: string, blur: number, paint: () => void) {
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = blur;
+    paint();
+    ctx.restore();
+  }
+
   function zoneColor(row: number): string {
-    if (row === ROW_GOALS) return "#04180c";
-    if (row >= ROW_RIVER_TOP && row <= ROW_RIVER_BOT) return "#001a33";
-    if (row === ROW_SAFE_MID || row === ROW_START) return "#052a12";
-    return "#0a0a0a";
+    if (row === ROW_GOALS) return NEON_GOAL_BG;
+    if (row >= ROW_RIVER_TOP && row <= ROW_RIVER_BOT) return NEON_DARK;
+    if (row === ROW_SAFE_MID || row === ROW_START) return NEON_SAFE;
+    return NEON_DARK;
   }
 
   function drawBackground() {
@@ -416,76 +435,97 @@ export function createFroggerEngine(
       ctx.fillRect(0, row * CELL, CANVAS_W, CELL);
     }
 
-    // Bocas destino: borde dorado, relleno claro; huecos entre bocas quedan
-    // con el fondo oscuro de la fila de metas (letales si la rana cae ahí).
+    // Bocas destino: borde dorado brillante; huecos entre bocas quedan con el
+    // fondo oscuro de la fila de metas (letales si la rana cae ahí).
     for (let i = 0; i < GOAL_COUNT; i++) {
       const startCol = 1 + i * GOAL_SPAN_COLS;
       const x = startCol * CELL;
       const y = ROW_GOALS * CELL;
       const w = GOAL_WIDTH_COLS * CELL;
-      ctx.fillStyle = goals[i] ? "#0a3d1f" : "#0e5228";
-      ctx.fillRect(x + 2, y + 2, w - 4, CELL - 4);
-      ctx.strokeStyle = "#d4af37";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x + 2, y + 2, w - 4, CELL - 4);
+      glow(NEON_GOAL_BORDER, 6, () => {
+        ctx.strokeStyle = NEON_GOAL_BORDER;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x + 2, y + 2, w - 4, CELL - 4);
+      });
       if (goals[i]) {
-        ctx.fillStyle = "#1f7a3d";
-        ctx.beginPath();
-        ctx.ellipse(x + w / 2, y + CELL / 2, 10, 8, 0, 0, Math.PI * 2);
-        ctx.fill();
+        glow(NEON_GREEN, 8, () => {
+          ctx.fillStyle = NEON_GREEN;
+          ctx.beginPath();
+          ctx.ellipse(x + w / 2, y + CELL / 2, 10, 8, 0, 0, Math.PI * 2);
+          ctx.fill();
+        });
       }
     }
+  }
+
+  function drawLaneDividers() {
+    ctx.save();
+    ctx.strokeStyle = NEON_LANE_LINE;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([10, 10]);
+    for (const row of [...ROAD_ROWS, ...RIVER_ROWS]) {
+      const y = row * CELL + CELL / 2;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(CANVAS_W, y);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function carColorIndex(e: Entity): number {
+    return Math.abs(Math.round(e.col)) % CAR_COLORS.length;
   }
 
   function drawEntity(e: Entity, row: number) {
     const y = row * CELL;
     if (e.type === "car" || e.type === "truck") {
-      ctx.fillStyle =
-        e.type === "truck" ? "#6b7280" : CAR_COLORS[carColorIndex(e)];
-      ctx.fillRect(e.col + 2, y + 6, e.width - 4, CELL - 12);
-      if (e.type === "truck") {
-        ctx.fillStyle = "#374151";
-        ctx.fillRect(e.col + e.width - 14, y + 6, 12, CELL - 12);
-      }
-      ctx.fillStyle = "#111827";
-      ctx.beginPath();
-      ctx.arc(e.col + 8, y + CELL - 6, 5, 0, Math.PI * 2);
-      ctx.arc(e.col + e.width - 8, y + CELL - 6, 5, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (e.type === "log") {
-      ctx.fillStyle = "#7a4a24";
-      ctx.fillRect(e.col + 1, y + 8, e.width - 2, CELL - 16);
-      ctx.strokeStyle = "#5c3719";
-      ctx.lineWidth = 2;
-      for (let lx = e.col + 8; lx < e.col + e.width - 4; lx += 14) {
+      const color = CAR_COLORS[carColorIndex(e)];
+      glow(color, 10, () => {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(lx, y + 8);
-        ctx.lineTo(lx, y + CELL - 8);
+        ctx.roundRect(e.col + 2, y + 6, e.width - 4, CELL - 12, 4);
         ctx.stroke();
-      }
+        if (e.type === "truck") {
+          ctx.beginPath();
+          ctx.moveTo(e.col + e.width - 14, y + 6);
+          ctx.lineTo(e.col + e.width - 14, y + CELL - 6);
+          ctx.stroke();
+        }
+      });
+    } else if (e.type === "log") {
+      glow(NEON_LOG, 6, () => {
+        ctx.strokeStyle = NEON_LOG;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(e.col + 1, y + 8, e.width - 2, CELL - 16);
+        for (let lx = e.col + 10; lx < e.col + e.width - 4; lx += 14) {
+          ctx.beginPath();
+          ctx.moveTo(lx, y + 8);
+          ctx.lineTo(lx, y + CELL - 8);
+          ctx.stroke();
+        }
+      });
     } else {
-      const alpha = e.submerged ? 0.28 : 1;
-      ctx.fillStyle = `rgba(46, 139, 87, ${alpha})`;
+      const alpha = e.submerged ? 0.25 : 1;
       const groupCells = Math.round(e.width / CELL);
-      for (let i = 0; i < groupCells; i++) {
-        ctx.beginPath();
-        ctx.ellipse(
-          e.col + i * CELL + CELL / 2,
-          y + CELL / 2,
-          CELL * 0.42,
-          CELL * 0.32,
-          0,
-          0,
-          Math.PI * 2
-        );
-        ctx.fill();
-      }
+      glow(NEON_GREEN, e.submerged ? 0 : 12, () => {
+        ctx.fillStyle = `rgba(34, 255, 102, ${alpha})`;
+        for (let i = 0; i < groupCells; i++) {
+          ctx.beginPath();
+          ctx.ellipse(
+            e.col + i * CELL + CELL / 2,
+            y + CELL / 2,
+            CELL * 0.42,
+            CELL * 0.32,
+            0,
+            0,
+            Math.PI * 2
+          );
+          ctx.fill();
+        }
+      });
     }
-  }
-
-  const CAR_COLORS = ["#e63946", "#f4d35e", "#3a86ff"];
-  function carColorIndex(e: Entity): number {
-    return Math.abs(Math.round(e.col)) % CAR_COLORS.length;
   }
 
   function drawFrog() {
@@ -496,17 +536,19 @@ export function createFroggerEngine(
     const cy = visualRow * CELL + CELL / 2;
     const hop = frog.animating ? Math.sin(Math.PI * t) * 6 : 0;
 
-    ctx.fillStyle = "#39d353";
-    ctx.beginPath();
-    ctx.ellipse(cx, cy - hop, 14, 12, 0, 0, Math.PI * 2);
-    ctx.fill();
+    glow(NEON_GREEN, 14, () => {
+      ctx.fillStyle = NEON_GREEN;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy - hop, 14, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+    });
 
     ctx.fillStyle = "#ffffff";
     ctx.beginPath();
     ctx.arc(cx - 5, cy - hop - 6, 3, 0, Math.PI * 2);
     ctx.arc(cx + 5, cy - hop - 6, 3, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#111827";
+    ctx.fillStyle = "#0a0a0a";
     ctx.beginPath();
     ctx.arc(cx - 5, cy - hop - 6, 1.4, 0, Math.PI * 2);
     ctx.arc(cx + 5, cy - hop - 6, 1.4, 0, Math.PI * 2);
@@ -514,31 +556,47 @@ export function createFroggerEngine(
   }
 
   function drawHud() {
-    ctx.fillStyle = "#ffffff";
     ctx.font = "16px monospace";
     ctx.textBaseline = "middle";
+
     ctx.textAlign = "left";
-    ctx.fillText(String(score), 8, CELL / 2);
+    glow("#7be6ff", 6, () => {
+      ctx.fillStyle = "#c9f7ff";
+      ctx.fillText(`SCORE ${String(score).padStart(6, "0")}`, 8, CELL / 2);
+    });
 
     ctx.textAlign = "center";
-    ctx.fillText(`NIVEL ${level}`, CANVAS_W / 2, CELL / 2);
+    glow("#ff2fd6", 6, () => {
+      ctx.fillStyle = "#ff8ae8";
+      ctx.fillText(
+        `LVL ${String(level).padStart(2, "0")}`,
+        CANVAS_W / 2,
+        CELL / 2
+      );
+    });
 
     ctx.textAlign = "right";
     for (let i = 0; i < lives; i++) {
-      ctx.fillStyle = "#39d353";
-      ctx.beginPath();
-      ctx.arc(CANVAS_W - 12 - i * 18, CELL / 2, 6, 0, Math.PI * 2);
-      ctx.fill();
+      glow(NEON_GREEN, 8, () => {
+        ctx.fillStyle = NEON_GREEN;
+        ctx.beginPath();
+        ctx.arc(CANVAS_W - 12 - i * 18, CELL / 2, 6, 0, Math.PI * 2);
+        ctx.fill();
+      });
     }
 
     const frac = Math.max(0, roundTimer / currentRoundMs);
-    ctx.fillStyle =
-      frac > 0.5 ? "#39d353" : frac > 0.25 ? "#f4d35e" : "#e63946";
-    ctx.fillRect(0, 0, CANVAS_W * frac, 4);
+    const timeColor =
+      frac > 0.5 ? NEON_GREEN : frac > 0.25 ? "#ffd400" : "#ff3b3b";
+    glow(timeColor, 8, () => {
+      ctx.fillStyle = timeColor;
+      ctx.fillRect(0, 0, CANVAS_W * frac, 4);
+    });
   }
 
   function draw() {
     drawBackground();
+    drawLaneDividers();
     for (const lane of lanes) {
       for (const e of lane.entities) drawEntity(e, lane.row);
     }

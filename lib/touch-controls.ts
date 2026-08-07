@@ -82,6 +82,15 @@ export const GAME_TOUCH_CONTROLS: Record<RealGameId, GameTouchControls> = {
     a: INERT,
     b: INERT,
   },
+  // Stub sin cablear: mobile-porter reemplaza estos INERT por el binding real.
+  frogger: {
+    up: INERT,
+    down: INERT,
+    left: INERT,
+    right: INERT,
+    a: INERT,
+    b: INERT,
+  },
 };
 
 export const TOUCH_REPEAT_DELAY_MS = 220;

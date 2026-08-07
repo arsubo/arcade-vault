@@ -856,6 +856,24 @@ a {
   filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.5));
 }
 
+.cover-frogger {
+  background: linear-gradient(180deg, #001a33 0%, #0a0a18 55%, #0a0a18 100%);
+}
+.cover-frogger::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+        90deg,
+        var(--yellow) 0 14px,
+        transparent 14px 30px
+      )
+      0 62% / 100% 3px no-repeat,
+    radial-gradient(circle at 50% 30%, var(--green) 0 13px, transparent 14px);
+  filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.5));
+}
+
 .cover-duelo {
   background: #0a0a18;
 }
@@ -1251,6 +1269,18 @@ a {
   .av-player[data-game="tetris"] .crt-screen {
     --crt-ratio-w: 1;
     --crt-ratio-h: 2;
+  }
+}
+
+/* Excepción puntual para Frogger: su tablero es 640×560 (16x14 celdas de
+   40px) = 8:7, más cuadrado que 4:3. Solo en móvil y solo este juego — los
+   otros 3 (más Tetris con su propia excepción) siguen con su proporción. No
+   toca el motor, el tamaño de los botones del pad ni la ubicación de
+   PAUSA/REGRESAR en el HUD. */
+@media (pointer: coarse) {
+  .av-player[data-game="frogger"] .crt-screen {
+    --crt-ratio-w: 8;
+    --crt-ratio-h: 7;
   }
 }
 

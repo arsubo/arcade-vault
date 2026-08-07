@@ -82,6 +82,24 @@ export const GAME_TOUCH_CONTROLS: Record<RealGameId, GameTouchControls> = {
     a: INERT,
     b: INERT,
   },
+  frogger: {
+    up: { code: "ArrowUp", mode: "tap", repeat: true, label: "Arriba" },
+    down: { code: "ArrowDown", mode: "tap", repeat: true, label: "Abajo" },
+    left: {
+      code: "ArrowLeft",
+      mode: "tap",
+      repeat: true,
+      label: "Izquierda",
+    },
+    right: {
+      code: "ArrowRight",
+      mode: "tap",
+      repeat: true,
+      label: "Derecha",
+    },
+    a: INERT,
+    b: INERT,
+  },
 };
 
 export const TOUCH_REPEAT_DELAY_MS = 220;

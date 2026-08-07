@@ -3,6 +3,7 @@ export const REAL_GAME_IDS = [
   "tetris",
   "arkanoid",
   "snake",
+  "frogger",
 ] as const;
 
 export type RealGameId = (typeof REAL_GAME_IDS)[number];

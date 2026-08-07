@@ -1,6 +1,6 @@
 # SPEC 10 — Controles táctiles y layout móvil en `/jugar`
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** 05-asteroides, 07-tetris, 08-arkanoid, 09-snake
 > **Date:** 2026-08-05
 > **Objective:** Hacer jugables los 4 juegos reales en pantalla táctil, agregando `setVirtualKey` al contrato de motores, un pad táctil único e idéntico para los 4 juegos debajo del marco CRT, y un HUD compacto de una franja en móvil.

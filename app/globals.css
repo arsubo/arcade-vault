@@ -1272,6 +1272,18 @@ a {
   }
 }
 
+/* Excepción puntual para Frogger: su tablero es 640×560 (16x14 celdas de
+   40px) = 8:7, más cuadrado que 4:3. Solo en móvil y solo este juego — los
+   otros 3 (más Tetris con su propia excepción) siguen con su proporción. No
+   toca el motor, el tamaño de los botones del pad ni la ubicación de
+   PAUSA/REGRESAR en el HUD. */
+@media (pointer: coarse) {
+  .av-player[data-game="frogger"] .crt-screen {
+    --crt-ratio-w: 8;
+    --crt-ratio-h: 7;
+  }
+}
+
 .crt-bottom {
   display: flex;
   align-items: center;

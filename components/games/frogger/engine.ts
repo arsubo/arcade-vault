@@ -5,8 +5,9 @@
 //
 // Todo el color sale de `GAME_PALETTES.frogger` (lib/skins.ts) y entra como
 // dato explícito por el parámetro `skin` — el motor nunca lee el DOM para
-// averiguar de qué color pintar. El pad táctil todavía no está cableado:
-// setVirtualKey es no-op a propósito, listo para mobile-porter.
+// averiguar de qué color pintar. `setVirtualKey` rutea al mismo
+// `handleDirectionKey` que usa el listener de teclado — sin lógica
+// duplicada.
 
 import { GAME_PALETTES, type SkinId } from "@/lib/skins";
 import type { GameEngineHandle } from "../types";
@@ -646,8 +647,10 @@ export function createFroggerEngine(
       // repinta en vivo — nunca reinicia ni altera el estado del juego.
       draw();
     },
-    setVirtualKey() {
-      // No-op: el pad táctil lo cablea mobile-porter.
+    setVirtualKey(code: string, down: boolean) {
+      // Motor sin `keyup`: solo reacciona al flanco de bajada del dedo, igual
+      // que `onKeyDown` ignora `keyup` por completo.
+      if (down) handleDirectionKey(code);
     },
     destroy() {
       if (rafId !== null) cancelAnimationFrame(rafId);

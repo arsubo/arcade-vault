@@ -856,6 +856,24 @@ a {
   filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.5));
 }
 
+.cover-frogger {
+  background: linear-gradient(180deg, #001a33 0%, #0a0a18 55%, #0a0a18 100%);
+}
+.cover-frogger::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+        90deg,
+        var(--yellow) 0 14px,
+        transparent 14px 30px
+      )
+      0 62% / 100% 3px no-repeat,
+    radial-gradient(circle at 50% 30%, var(--green) 0 13px, transparent 14px);
+  filter: drop-shadow(0 0 8px rgba(0, 255, 136, 0.5));
+}
+
 .cover-duelo {
   background: #0a0a18;
 }

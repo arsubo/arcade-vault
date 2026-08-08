@@ -10,6 +10,7 @@ import { useSkin } from "@/components/games/useSkin";
 import type { VirtualInput } from "@/components/games/types";
 import type { RealGameId } from "@/lib/real-games";
 import { submitScore } from "@/app/games/[id]/jugar/actions";
+import { attachFpsMeter, type FpsMeter } from "@/lib/fps-meter";
 
 export default function JugarClient({ game }: { game: Game }) {
   const isRegistered = Boolean(GAME_REGISTRY[game.id]);
@@ -27,6 +28,8 @@ export default function JugarClient({ game }: { game: Game }) {
   const inputRef = useRef<VirtualInput | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const screenRef = useRef<HTMLDivElement>(null);
+  const fpsMeterRef = useRef<FpsMeter | null>(null);
 
   const [playerName, setPlayerName] = useState("");
   const [saveState, setSaveState] = useState<
@@ -53,6 +56,25 @@ export default function JugarClient({ game }: { game: Game }) {
     document.addEventListener("pointerdown", onPointerDown);
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [menuOpen]);
+
+  useEffect(() => {
+    const screen = screenRef.current;
+    if (!screen) return;
+    fpsMeterRef.current = attachFpsMeter(screen);
+    return () => {
+      fpsMeterRef.current?.destroy();
+      fpsMeterRef.current = null;
+    };
+  }, []);
+
+  // Contador de renders del overlay `?fps=1`: se llama en el cuerpo del
+  // componente (no en un efecto) y vive en un `useRef` dentro del meter, así
+  // que incrementarlo no dispara el render que cuenta. Un efecto solo se
+  // ejecuta una vez por commit, así que subcontaría los renders descartados
+  // (p. ej. el doble render de StrictMode); leer el ref acá es intencional y
+  // no afecta el render (no lee ni escribe estado visible en el DOM).
+  // eslint-disable-next-line react-hooks/refs
+  fpsMeterRef.current?.countReactRender();
 
   const EngineComponent = GAME_REGISTRY[game.id];
   const level = isRegistered ? engineLevel : 1 + Math.floor(score / 2500);
@@ -169,7 +191,7 @@ export default function JugarClient({ game }: { game: Game }) {
       </div>
 
       <div className="crt">
-        <div className="crt-screen">
+        <div className="crt-screen" ref={screenRef}>
           {EngineComponent ? (
             <EngineComponent
               key={gameKey}
@@ -183,6 +205,7 @@ export default function JugarClient({ game }: { game: Game }) {
                 setScore(finalScore);
                 endGame();
               }}
+              onEngineFrame={() => fpsMeterRef.current?.tick()}
             />
           ) : (
             <div className="game-arena">

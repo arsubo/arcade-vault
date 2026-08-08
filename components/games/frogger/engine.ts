@@ -186,6 +186,8 @@ export interface FroggerCallbacks {
   onLivesChange: (lives: number) => void;
   onLevelChange: (level: number) => void;
   onGameOver: (finalScore: number) => void;
+  /** Diagnóstico de rendimiento: una vez por frame de rAF, se pause o no. */
+  onFrame?: () => void;
 }
 
 export type FroggerEngineHandle = GameEngineHandle;
@@ -619,6 +621,7 @@ export function createFroggerEngine(
 
   function loop(ts: number) {
     rafId = requestAnimationFrame(loop);
+    callbacks.onFrame?.();
     if (lastTime === null) {
       lastTime = ts;
       draw();

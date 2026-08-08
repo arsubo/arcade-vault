@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { memo, useCallback, useEffect, useRef } from "react";
 import type { PointerEvent, RefObject } from "react";
 import type { RealGameId } from "@/lib/real-games";
 import {
@@ -34,11 +34,7 @@ const GLYPH: Record<TouchControlId, string> = {
   b: "B",
 };
 
-export default function TouchControls({
-  gameId,
-  inputRef,
-  paused,
-}: TouchControlsProps) {
+function TouchControls({ gameId, inputRef, paused }: TouchControlsProps) {
   const bindings = GAME_TOUCH_CONTROLS[gameId];
   const pointersRef = useRef(new Map<number, ActivePointer>());
 
@@ -70,8 +66,16 @@ export default function TouchControls({
   // sobrevivir a `/jugar`.
   useEffect(() => releaseAll, [releaseAll]);
 
+  // Un solo handler estable para los 6 botones en vez de una factory
+  // currificada (`(binding) => (e) => ...`) que fabricaba una función nueva
+  // por botón y por render: el control se resuelve desde `data-control` en
+  // el propio evento.
   const handlePointerDown = useCallback(
-    (binding: TouchControlBinding) => (e: PointerEvent<HTMLButtonElement>) => {
+    (e: PointerEvent<HTMLButtonElement>) => {
+      const controlId = e.currentTarget.dataset.control as
+        TouchControlId | undefined;
+      if (!controlId) return;
+      const binding: TouchControlBinding = bindings[controlId];
       const code = binding.code;
       if (!code) return;
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -96,7 +100,7 @@ export default function TouchControls({
         repeatInterval,
       });
     },
-    [inputRef]
+    [bindings, inputRef]
   );
 
   const handlePointerRelease = useCallback(
@@ -120,7 +124,8 @@ export default function TouchControls({
         className={className}
         aria-label={binding.label}
         aria-disabled={inert ? true : undefined}
-        onPointerDown={inert ? undefined : handlePointerDown(binding)}
+        data-control={controlId}
+        onPointerDown={inert ? undefined : handlePointerDown}
         onPointerUp={inert ? undefined : handlePointerRelease}
         onPointerCancel={inert ? undefined : handlePointerRelease}
         onPointerLeave={inert ? undefined : handlePointerRelease}
@@ -145,3 +150,5 @@ export default function TouchControls({
     </div>
   );
 }
+
+export default memo(TouchControls);

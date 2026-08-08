@@ -25,6 +25,14 @@ export interface GameEngineProps {
   onLivesChange: (lives: number) => void;
   onLevelChange: (level: number) => void;
   onGameOver: (finalScore: number) => void;
+  /**
+   * Diagnóstico de rendimiento (`?fps=1`, ver `lib/fps-meter.ts`): el motor
+   * la llama una vez por frame mientras el loop está corriendo. En pausa (o
+   * tras game-over, según el motor) el loop se corta de verdad y deja de
+   * llamarla — ver `lib/game-loop.ts`. `undefined` en uso normal — ningún
+   * motor debe suponer que existe.
+   */
+  onEngineFrame?: () => void;
 }
 
 /** Handle imperativo que devuelve todo `create<X>Engine(...)`. */

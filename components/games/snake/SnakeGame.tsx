@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { createSnakeEngine, type SnakeEngineHandle } from "./engine";
 import type { GameEngineProps } from "../types";
 
-export default function SnakeGame({
+function SnakeGame({
   paused,
   skin,
   inputRef,
@@ -86,3 +86,5 @@ export default function SnakeGame({
     </div>
   );
 }
+
+export default memo(SnakeGame);

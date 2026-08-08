@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Game } from "@/lib/games";
 import { GAME_REGISTRY } from "@/components/games/registry";
 import SkinPicker from "@/components/games/SkinPicker";
@@ -10,6 +10,7 @@ import { useSkin } from "@/components/games/useSkin";
 import type { VirtualInput } from "@/components/games/types";
 import type { RealGameId } from "@/lib/real-games";
 import { submitScore } from "@/app/games/[id]/jugar/actions";
+import { attachFpsMeter, type FpsMeter } from "@/lib/fps-meter";
 
 export default function JugarClient({ game }: { game: Game }) {
   const isRegistered = Boolean(GAME_REGISTRY[game.id]);
@@ -27,6 +28,8 @@ export default function JugarClient({ game }: { game: Game }) {
   const inputRef = useRef<VirtualInput | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const screenRef = useRef<HTMLDivElement>(null);
+  const fpsMeterRef = useRef<FpsMeter | null>(null);
 
   const [playerName, setPlayerName] = useState("");
   const [saveState, setSaveState] = useState<
@@ -54,10 +57,40 @@ export default function JugarClient({ game }: { game: Game }) {
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [menuOpen]);
 
+  useEffect(() => {
+    const screen = screenRef.current;
+    if (!screen) return;
+    fpsMeterRef.current = attachFpsMeter(screen);
+    return () => {
+      fpsMeterRef.current?.destroy();
+      fpsMeterRef.current = null;
+    };
+  }, []);
+
+  // Contador de renders del overlay `?fps=1`: se llama en el cuerpo del
+  // componente (no en un efecto) y vive en un `useRef` dentro del meter, así
+  // que incrementarlo no dispara el render que cuenta. Un efecto solo se
+  // ejecuta una vez por commit, así que subcontaría los renders descartados
+  // (p. ej. el doble render de StrictMode); leer el ref acá es intencional y
+  // no afecta el render (no lee ni escribe estado visible en el DOM).
+  // eslint-disable-next-line react-hooks/refs
+  fpsMeterRef.current?.countReactRender();
+
   const EngineComponent = GAME_REGISTRY[game.id];
   const level = isRegistered ? engineLevel : 1 + Math.floor(score / 2500);
 
   const endGame = () => setOver(true);
+  // Estable a través de renders: los 5 componentes de motor están en
+  // `React.memo`, y una prop de función recreada en cada render (como era
+  // este arrow inline) invalidaría esa memoización en cada cambio de score.
+  const handleGameOver = useCallback((finalScore: number) => {
+    setScore(finalScore);
+    setOver(true);
+  }, []);
+  // Mismo motivo: `onEngineFrame` también viajaba como arrow inline.
+  const handleEngineFrame = useCallback(() => {
+    fpsMeterRef.current?.tick();
+  }, []);
   const restart = () => {
     setScore(0);
     setLives(3);
@@ -169,7 +202,7 @@ export default function JugarClient({ game }: { game: Game }) {
       </div>
 
       <div className="crt">
-        <div className="crt-screen">
+        <div className="crt-screen" ref={screenRef}>
           {EngineComponent ? (
             <EngineComponent
               key={gameKey}
@@ -179,10 +212,8 @@ export default function JugarClient({ game }: { game: Game }) {
               onScoreChange={setScore}
               onLivesChange={setLives}
               onLevelChange={setEngineLevel}
-              onGameOver={(finalScore) => {
-                setScore(finalScore);
-                endGame();
-              }}
+              onGameOver={handleGameOver}
+              onEngineFrame={handleEngineFrame}
             />
           ) : (
             <div className="game-arena">

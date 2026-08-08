@@ -12,6 +12,7 @@ export default function AsteroidsGame({
   onLivesChange,
   onLevelChange,
   onGameOver,
+  onEngineFrame,
 }: GameEngineProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<AsteroidsEngineHandle | null>(null);
@@ -23,6 +24,7 @@ export default function AsteroidsGame({
     onLivesChange,
     onLevelChange,
     onGameOver,
+    onEngineFrame,
   });
 
   useEffect(() => {
@@ -31,8 +33,9 @@ export default function AsteroidsGame({
       onLivesChange,
       onLevelChange,
       onGameOver,
+      onEngineFrame,
     };
-  }, [onScoreChange, onLivesChange, onLevelChange, onGameOver]);
+  }, [onScoreChange, onLivesChange, onLevelChange, onGameOver, onEngineFrame]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -45,6 +48,7 @@ export default function AsteroidsGame({
         onLivesChange: (lives) => callbacksRef.current.onLivesChange(lives),
         onLevelChange: (level) => callbacksRef.current.onLevelChange(level),
         onGameOver: (finalScore) => callbacksRef.current.onGameOver(finalScore),
+        onFrame: () => callbacksRef.current.onEngineFrame?.(),
       },
       initialSkinRef.current
     );

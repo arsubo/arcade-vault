@@ -3,6 +3,8 @@
 // Mismas mecánicas, mismo balance, mismo HUD/GAME OVER dibujados en canvas.
 
 import { GAME_PALETTES, type SkinId } from "@/lib/skins";
+import { getOpaqueContext2D } from "@/lib/game-canvas";
+import { createGameLoop } from "@/lib/game-loop";
 import type { GameEngineHandle } from "../types";
 import type { AsteroidsPalette } from "./palette";
 
@@ -14,6 +16,16 @@ const dist = (a: { x: number; y: number }, b: { x: number; y: number }) =>
   Math.hypot(a.x - b.x, a.y - b.y);
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const randInt = (min: number, max: number) => Math.floor(rand(min, max + 1));
+
+/** Compactación in-place de los muertos: sin la asignación por frame que deja
+ * `.filter()`. */
+function compactDead<T extends { dead: boolean }>(arr: T[]): void {
+  let write = 0;
+  for (let read = 0; read < arr.length; read++) {
+    if (!arr[read].dead) arr[write++] = arr[read];
+  }
+  arr.length = write;
+}
 
 const POWERUP_DROP_CHANCE = 0.15;
 const POWERUP_DURATION = 5;
@@ -113,7 +125,10 @@ class Asteroid {
   }
 
   draw(ctx: CanvasRenderingContext2D, pal: AsteroidsPalette) {
-    ctx.save();
+    // `setTransform` a la identidad en vez de `save()/restore()`: lo único
+    // que hay que revertir es la matriz de transformación (nada usa
+    // shadow/clip/globalAlpha acá), y resetearla es más barato que apilar y
+    // desapilar el estado completo del contexto.
     ctx.translate(this.x, this.y);
     ctx.rotate(this.rot);
     ctx.strokeStyle = pal.asteroid;
@@ -125,7 +140,7 @@ class Asteroid {
       ctx.lineTo(this.verts[i][0], this.verts[i][1]);
     ctx.closePath();
     ctx.stroke();
-    ctx.restore();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 }
 
@@ -160,14 +175,13 @@ class PowerUp {
   draw(ctx: CanvasRenderingContext2D, pal: AsteroidsPalette) {
     if (this.ttl < 2 && Math.floor(this.ttl * 8) % 2 === 0) return;
     const pulse = 0.85 + Math.sin(performance.now() / 150) * 0.15;
-    ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(Math.PI / 4);
     ctx.strokeStyle = pal.powerUp;
     ctx.lineWidth = 2;
     const r = this.radius * pulse;
     ctx.strokeRect(-r, -r, r * 2, r * 2);
-    ctx.restore();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = pal.powerUpText;
     ctx.font = "bold 12px monospace";
     ctx.textAlign = "center";
@@ -254,7 +268,6 @@ class Ship {
     if (this.invincible > 0 && Math.floor(this.invincible * 8) % 2 === 0)
       return;
 
-    ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.angle);
     ctx.strokeStyle = pal.ship;
@@ -280,7 +293,7 @@ class Ship {
       ctx.stroke();
     }
 
-    ctx.restore();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 }
 
@@ -312,13 +325,14 @@ class Particle {
     if (this.ttl <= 0) this.dead = true;
   }
 
-  draw(ctx: CanvasRenderingContext2D, pal: AsteroidsPalette) {
+  draw(ctx: CanvasRenderingContext2D, alphaColors: readonly string[]) {
+    // `alphaColors` es la tabla de `rgba()` precomputada en `setSkin` (una
+    // por cada paso de 0.01 de alpha): evita construir un string nuevo por
+    // partícula y por frame (hasta ~140/frame con muchas partículas vivas).
     const alpha = this.ttl / this.life;
-    // El color base viaja como tripleta [r,g,b] y el `rgba(...)` se compone
-    // acá: interpolar un hex con alpha produce una cadena inválida que canvas
-    // ignora en silencio, conservando el `strokeStyle` anterior.
-    const [r, g, b] = pal.particle;
-    ctx.strokeStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+    const idx = Math.round(alpha * (alphaColors.length - 1));
+    ctx.strokeStyle =
+      alphaColors[Math.min(alphaColors.length - 1, Math.max(0, idx))];
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(this.x, this.y);
@@ -332,22 +346,38 @@ export interface AsteroidsCallbacks {
   onLivesChange: (lives: number) => void;
   onLevelChange: (level: number) => void;
   onGameOver: (finalScore: number) => void;
+  /** Diagnóstico de rendimiento: una vez por frame de rAF mientras corre. */
+  onFrame?: () => void;
 }
 
 export type AsteroidsEngineHandle = GameEngineHandle;
+
+const PARTICLE_ALPHA_STEPS = 101; // 0.00 .. 1.00 en pasos de 0.01
 
 export function createAsteroidsEngine(
   canvas: HTMLCanvasElement,
   callbacks: AsteroidsCallbacks,
   skin: SkinId
 ): AsteroidsEngineHandle {
-  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-  if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas.");
+  const ctx = getOpaqueContext2D(canvas);
 
   // La skin entra siempre como dato explícito. El motor jamás lee el DOM
   // (`getComputedStyle`) para averiguar un color.
 
   let pal: AsteroidsPalette = GAME_PALETTES.asteroids[skin];
+
+  /** Tabla de `rgba()` de las partículas (una por paso de alpha), recomputada
+   * solo en `setSkin` — ver `Particle.draw`. */
+  let particleAlphaColors: string[] = [];
+  function computeParticleAlphaColors() {
+    const [r, g, b] = pal.particle;
+    particleAlphaColors = Array.from(
+      { length: PARTICLE_ALPHA_STEPS },
+      (_, i) =>
+        `rgba(${r}, ${g}, ${b}, ${(i / (PARTICLE_ALPHA_STEPS - 1)).toFixed(2)})`
+    );
+  }
+  computeParticleAlphaColors();
 
   // ── Input ───────────────────────────────────────────────────────────────
   const keys: Keys = {};
@@ -452,6 +482,9 @@ export function createAsteroidsEngine(
     callbacks.onLivesChange(lives);
     if (lives <= 0) {
       state = "gameover";
+      // Corta el loop de verdad: sin esto, el rAF sigue despertando al
+      // compositor detrás del modal de "FIN DEL JUEGO" indefinidamente.
+      syncRunning();
       callbacks.onGameOver(score);
     } else {
       state = "dead";
@@ -463,16 +496,16 @@ export function createAsteroidsEngine(
   function update(dt: number) {
     if (state === "gameover") {
       if (pressed("Space")) initGame();
-      particles.forEach((p) => p.update(dt));
-      particles = particles.filter((p) => !p.dead);
+      for (let i = 0; i < particles.length; i++) particles[i].update(dt);
+      compactDead(particles);
       return;
     }
 
     if (state === "dead") {
       deadTimer -= dt;
-      particles.forEach((p) => p.update(dt));
-      particles = particles.filter((p) => !p.dead);
-      asteroids.forEach((a) => a.update(dt));
+      for (let i = 0; i < particles.length; i++) particles[i].update(dt);
+      compactDead(particles);
+      for (let i = 0; i < asteroids.length; i++) asteroids[i].update(dt);
       if (deadTimer <= 0) {
         state = "playing";
         ship.reset();
@@ -486,14 +519,14 @@ export function createAsteroidsEngine(
     }
 
     ship.update(dt, keys);
-    bullets.forEach((b) => b.update(dt));
-    asteroids.forEach((a) => a.update(dt));
-    particles.forEach((p) => p.update(dt));
-    powerUps.forEach((p) => p.update(dt));
+    for (let i = 0; i < bullets.length; i++) bullets[i].update(dt);
+    for (let i = 0; i < asteroids.length; i++) asteroids[i].update(dt);
+    for (let i = 0; i < particles.length; i++) particles[i].update(dt);
+    for (let i = 0; i < powerUps.length; i++) powerUps[i].update(dt);
 
-    bullets = bullets.filter((b) => !b.dead);
-    particles = particles.filter((p) => !p.dead);
-    powerUps = powerUps.filter((p) => !p.dead);
+    compactDead(bullets);
+    compactDead(particles);
+    compactDead(powerUps);
 
     for (const p of powerUps) {
       if (!p.dead && dist(ship, p) < ship.radius + p.radius) {
@@ -524,8 +557,9 @@ export function createAsteroidsEngine(
         }
       }
     }
-    asteroids = asteroids.filter((a) => !a.dead).concat(newAsteroids);
-    bullets = bullets.filter((b) => !b.dead);
+    compactDead(asteroids);
+    for (const na of newAsteroids) asteroids.push(na);
+    compactDead(bullets);
 
     // Nave vs asteroide
     if (ship.invincible <= 0) {
@@ -543,7 +577,6 @@ export function createAsteroidsEngine(
 
   // ── Draw ────────────────────────────────────────────────────────────────
   function drawLifeIcon(x: number, y: number) {
-    ctx.save();
     ctx.translate(x, y);
     ctx.rotate(-Math.PI / 2);
     ctx.strokeStyle = pal.lifeIcon;
@@ -556,7 +589,7 @@ export function createAsteroidsEngine(
     ctx.lineTo(-6, 5);
     ctx.closePath();
     ctx.stroke();
-    ctx.restore();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
   function drawHUD() {
@@ -589,16 +622,18 @@ export function createAsteroidsEngine(
   }
 
   function draw() {
+    callbacks.onFrame?.();
     ctx.fillStyle = pal.bg;
     ctx.fillRect(0, 0, W, H);
 
     // `Bullet`, `Asteroid`, `PowerUp`, `Ship` y `Particle` están declaradas a
-    // nivel de módulo: no ven la clausura del motor, así que la paleta les
-    // llega como argumento explícito en cada llamada a `draw`.
-    particles.forEach((p) => p.draw(ctx, pal));
-    asteroids.forEach((a) => a.draw(ctx, pal));
-    powerUps.forEach((p) => p.draw(ctx, pal));
-    bullets.forEach((b) => b.draw(ctx, pal));
+    // nivel de módulo: no ven la clausura del motor, así que la paleta (o la
+    // tabla de alphas, para `Particle`) les llega como argumento explícito.
+    for (let i = 0; i < particles.length; i++)
+      particles[i].draw(ctx, particleAlphaColors);
+    for (let i = 0; i < asteroids.length; i++) asteroids[i].draw(ctx, pal);
+    for (let i = 0; i < powerUps.length; i++) powerUps[i].draw(ctx, pal);
+    for (let i = 0; i < bullets.length; i++) bullets[i].draw(ctx, pal);
     ship.draw(ctx, pal);
 
     drawHUD();
@@ -610,41 +645,43 @@ export function createAsteroidsEngine(
       );
   }
 
-  // ── Loop principal ────────────────────────────────────────────────────────
-  let lastTime: number | null = null;
-  let rafId: number | null = null;
+  // ── Loop principal ──────────────────────────────────────────────────────
+  // Corta el rAF de verdad en pausa y en game-over — no reprograma el frame
+  // para recién ahí hacer `return`, como hacía el loop manual anterior.
+  const gameLoop = createGameLoop({
+    update(dtMs) {
+      // Mismo clamp de 50ms que tenía el loop manual (evita saltos grandes
+      // de simulación tras un stall); las unidades del motor son segundos.
+      update(Math.min(dtMs / 1000, 0.05));
+    },
+    draw,
+  });
 
-  function loop(ts: number) {
-    rafId = requestAnimationFrame(loop);
-    if (paused) {
-      lastTime = null;
-      return;
-    }
-    const dt = lastTime === null ? 0 : Math.min((ts - lastTime) / 1000, 0.05);
-    lastTime = ts;
-    update(dt);
-    draw();
+  function syncRunning() {
+    gameLoop.setRunning(!paused && state !== "gameover");
   }
 
   initGame();
-  rafId = requestAnimationFrame(loop);
+  gameLoop.start();
 
   return {
     setPaused(p: boolean) {
       paused = p;
+      syncRunning();
     },
     setSkin(next: SkinId) {
       pal = GAME_PALETTES.asteroids[next];
-      // Repintado inmediato y obligatorio: el loop hace `return` antes de
-      // dibujar cuando está en pausa, y la pausa es justo el momento más
-      // probable de que el jugador esté tocando el selector de skin.
+      computeParticleAlphaColors();
+      // Repintado inmediato y obligatorio: el loop no dibuja mientras está
+      // detenido (pausa o game-over), y esos son justo los momentos más
+      // probables de que el jugador esté tocando el selector de skin.
       draw();
     },
     setVirtualKey(code: string, down: boolean) {
       setKey(code, down);
     },
     destroy() {
-      if (rafId !== null) cancelAnimationFrame(rafId);
+      gameLoop.stop();
       window.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("keyup", onKeyUp);
     },

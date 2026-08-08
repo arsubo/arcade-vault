@@ -1,5 +1,9 @@
 import type { Metadata } from "next";
-import { Press_Start_2P, JetBrains_Mono, Courier_Prime } from "next/font/google";
+import {
+  Press_Start_2P,
+  JetBrains_Mono,
+  Courier_Prime,
+} from "next/font/google";
 import Nav from "@/components/Nav";
 import "./globals.css";
 
@@ -37,7 +41,9 @@ export default function RootLayout({
       className={`${pressStart2P.variable} ${jetBrainsMono.variable} ${courierPrime.variable}`}
     >
       <body suppressHydrationWarning>
-        <div className="av-bg" />
+        <div className="av-bg">
+          <div className="av-bg-grid" />
+        </div>
         <div className="av-noise" />
         <div id="root">
           <Nav />

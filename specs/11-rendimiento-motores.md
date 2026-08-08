@@ -1,6 +1,6 @@
 # SPEC 11 — Rendimiento de los motores de juego
 
-> **Status:** Implementado
+> **Status:** Aprobado — pasos 1-9, 13 y 14 implementados; pasos 10-12 (Tetris, Arkanoid, Snake) pendientes.
 > **Depends on:** SPEC 05, SPEC 07, SPEC 08, SPEC 09, SPEC 10, `specs/game-jam/frogger/01-frogger-core.md`
 > **Date:** 2026-08-07
 > **Objective:** Recuperar 60 fps estables en los 5 motores sin cambiar su aspecto, eliminando el trabajo de dibujo desperdiciado por frame, la animación CSS no compositable que repinta el viewport entero, y los re-renders de React que nadie observa.
@@ -144,23 +144,23 @@ Cada paso deja el juego funcionando y es commiteable por separado.
 
 ## Acceptance criteria
 
-- [x] `/games/<id>/jugar?fps=1` muestra un overlay con fps, ms/frame p50 y p95, y renders de React por segundo, en los 5 juegos.
+- [ ] `/games/<id>/jugar?fps=1` muestra un overlay con fps, ms/frame p50 y p95, y renders de React por segundo, en los 5 juegos. **Cumplido en Frogger y Asteroids; Tetris/Arkanoid/Snake todavía no llaman `onFrame`.**
 - [x] Sin `?fps=1` el overlay no se monta y no se instala ningún contador (verificable: `attachFpsMeter` devuelve `null`).
-- [x] Frogger sostiene 60 fps en desktop durante una ronda completa, medido con el overlay.
-- [x] El p95 de ms/frame de Frogger baja al menos 50 % respecto de la línea base anotada en el paso 3.
+- [ ] Frogger sostiene 60 fps en desktop durante una ronda completa, medido con el overlay. **No verificado de forma rigurosa: las mediciones se hicieron en `npm run dev` (con overhead de Turbopack/HMR), no en build de producción.**
+- [ ] El p95 de ms/frame de Frogger baja al menos 50 % respecto de la línea base anotada en el paso 3. **No se registró una línea base formal antes del paso 4; las comparaciones que sí se hicieron fueron paso a paso, no contra el estado original.**
 - [x] En Frogger, el fondo (zonas, bocas de meta, líneas divisorias) se dibuja con un único `drawImage` por frame.
 - [x] En Frogger, ninguna entidad con `col + width < 0` o `col > CANVAS_W` genera llamadas de dibujo.
-- [x] Al pausar cualquiera de los 5 juegos no se programan nuevos frames (verificable: un `console.count` en el loop deja de subir).
-- [x] Tras "FIN DEL JUEGO", ningún motor sigue dibujando detrás del modal.
-- [x] Reanudar tras una pausa no produce ningún salto de simulación.
-- [x] Los 5 canvas obtienen su contexto con `{ alpha: false }`.
-- [x] Tetris no repinta el tablero en frames donde ninguna pieza se movió, rotó ni cayó.
-- [x] Snake no repinta en frames donde no avanzó un tick.
-- [x] Arkanoid no llama a `getBoundingClientRect()` dentro de `onMouseMove`.
+- [ ] Al pausar cualquiera de los 5 juegos no se programan nuevos frames (verificable: un `console.count` en el loop deja de subir). **Cumplido en Frogger y Asteroids (verificado); Tetris/Arkanoid/Snake siguen con el loop manual que reprograma igual en pausa.**
+- [ ] Tras "FIN DEL JUEGO", ningún motor sigue dibujando detrás del modal. **Cumplido en Frogger y Asteroids; no en Tetris/Arkanoid/Snake.**
+- [ ] Reanudar tras una pausa no produce ningún salto de simulación. **Cumplido en Frogger y Asteroids; no verificable en Tetris/Arkanoid/Snake porque no adoptaron `createGameLoop`.**
+- [ ] Los 5 canvas obtienen su contexto con `{ alpha: false }`. **Solo Frogger y Asteroids usan `getOpaqueContext2D`.**
+- [ ] Tetris no repinta el tablero en frames donde ninguna pieza se movió, rotó ni cayó. **Pendiente — paso 10.**
+- [ ] Snake no repinta en frames donde no avanzó un tick. **Pendiente — paso 12.**
+- [ ] Arkanoid no llama a `getBoundingClientRect()` dentro de `onMouseMove`. **Pendiente — paso 11.**
 - [x] `gridscroll` no anima ninguna propiedad de paint (verificable: el layer no aparece repintando en la pestaña Layers de DevTools).
-- [x] Con el pad táctil visible, mantener ▼ en Tetris no dispara más renders de React que cambios de puntaje reales.
+- [ ] Con el pad táctil visible, mantener ▼ en Tetris no dispara más renders de React que cambios de puntaje reales. **`TouchControls` ya tiene handlers estables (paso 13), pero el motor de Tetris no se tocó (paso 10 pendiente) y no se verificó este caso puntual.**
 - [x] El contador de renders de `fps-meter` está implementado con `useRef` (grep: ningún `setState`/`useState` en su ruta de incremento).
-- [x] Cada uno de los 5 juegos se ve **igual que antes** en las 3 skins: captura antes/después por juego y por skin, comparadas a ojo.
+- [ ] Cada uno de los 5 juegos se ve **igual que antes** en las 3 skins: captura antes/después por juego y por skin, comparadas a ojo. **Se verificó visualmente en Frogger y Asteroids durante las pruebas manuales, pero sin el proceso formal de captura antes/después descrito acá.**
 - [x] `npm run build` y `npm run lint` pasan sin errores nuevos.
 - [x] `npm run check:skins` sigue pasando.
 

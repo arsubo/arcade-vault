@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { createAsteroidsEngine, type AsteroidsEngineHandle } from "./engine";
 import type { GameEngineProps } from "../types";
 
-export default function AsteroidsGame({
+function AsteroidsGame({
   paused,
   skin,
   inputRef,
@@ -79,3 +79,5 @@ export default function AsteroidsGame({
     />
   );
 }
+
+export default memo(AsteroidsGame);

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Game } from "@/lib/games";
 import { GAME_REGISTRY } from "@/components/games/registry";
 import SkinPicker from "@/components/games/SkinPicker";
@@ -80,6 +80,17 @@ export default function JugarClient({ game }: { game: Game }) {
   const level = isRegistered ? engineLevel : 1 + Math.floor(score / 2500);
 
   const endGame = () => setOver(true);
+  // Estable a través de renders: los 5 componentes de motor están en
+  // `React.memo`, y una prop de función recreada en cada render (como era
+  // este arrow inline) invalidaría esa memoización en cada cambio de score.
+  const handleGameOver = useCallback((finalScore: number) => {
+    setScore(finalScore);
+    setOver(true);
+  }, []);
+  // Mismo motivo: `onEngineFrame` también viajaba como arrow inline.
+  const handleEngineFrame = useCallback(() => {
+    fpsMeterRef.current?.tick();
+  }, []);
   const restart = () => {
     setScore(0);
     setLives(3);
@@ -201,11 +212,8 @@ export default function JugarClient({ game }: { game: Game }) {
               onScoreChange={setScore}
               onLivesChange={setLives}
               onLevelChange={setEngineLevel}
-              onGameOver={(finalScore) => {
-                setScore(finalScore);
-                endGame();
-              }}
-              onEngineFrame={() => fpsMeterRef.current?.tick()}
+              onGameOver={handleGameOver}
+              onEngineFrame={handleEngineFrame}
             />
           ) : (
             <div className="game-arena">

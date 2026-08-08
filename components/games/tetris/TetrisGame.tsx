@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { createTetrisEngine, type TetrisEngineHandle } from "./engine";
 import type { GameEngineProps } from "../types";
 
-export default function TetrisGame({
+function TetrisGame({
   paused,
   skin,
   inputRef,
@@ -103,3 +103,5 @@ export default function TetrisGame({
     </div>
   );
 }
+
+export default memo(TetrisGame);

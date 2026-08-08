@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import {
   CANVAS_H,
   CANVAS_W,
@@ -9,7 +9,7 @@ import {
 } from "./engine";
 import type { GameEngineProps } from "../types";
 
-export default function FroggerGame({
+function FroggerGame({
   paused,
   skin,
   inputRef,
@@ -85,3 +85,5 @@ export default function FroggerGame({
     />
   );
 }
+
+export default memo(FroggerGame);

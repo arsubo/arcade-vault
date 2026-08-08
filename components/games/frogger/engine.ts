@@ -522,17 +522,22 @@ export function createFroggerEngine(
         }
       });
     } else if (e.type === "log") {
+      // El contorno conserva el blur; el veteado interior se dibuja plano
+      // (sin `shadowBlur`) porque es, por lejos, el mayor volumen de
+      // operaciones con blur del motor y el cambio es imperceptible.
       glow(pal.log, 6, () => {
         ctx.strokeStyle = pal.log;
         ctx.lineWidth = 2;
         ctx.strokeRect(e.col + 1, y + 8, e.width - 2, CELL - 16);
-        for (let lx = e.col + 10; lx < e.col + e.width - 4; lx += 14) {
-          ctx.beginPath();
-          ctx.moveTo(lx, y + 8);
-          ctx.lineTo(lx, y + CELL - 8);
-          ctx.stroke();
-        }
       });
+      ctx.strokeStyle = pal.log;
+      ctx.lineWidth = 2;
+      for (let lx = e.col + 10; lx < e.col + e.width - 4; lx += 14) {
+        ctx.beginPath();
+        ctx.moveTo(lx, y + 8);
+        ctx.lineTo(lx, y + CELL - 8);
+        ctx.stroke();
+      }
     } else {
       const alpha = e.submerged ? 0.25 : 1;
       const groupCells = Math.round(e.width / CELL);
@@ -625,7 +630,10 @@ export function createFroggerEngine(
     if (bgLayer.consumeDirty()) paintBackgroundLayer();
     ctx.drawImage(bgLayer.canvas, 0, 0);
     for (const lane of lanes) {
-      for (const e of lane.entities) drawEntity(e, lane.row);
+      for (const e of lane.entities) {
+        if (e.col + e.width < 0 || e.col > CANVAS_W) continue;
+        drawEntity(e, lane.row);
+      }
     }
     drawFrog();
     drawHud();

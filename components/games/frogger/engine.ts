@@ -11,6 +11,7 @@
 
 import { GAME_PALETTES, type SkinId } from "@/lib/skins";
 import { createLayer, getOpaqueContext2D, type Layer } from "@/lib/game-canvas";
+import { createGameLoop } from "@/lib/game-loop";
 import type { GameEngineHandle } from "../types";
 import type { FroggerPalette } from "./palette";
 
@@ -30,6 +31,8 @@ export const ROW_START = 13;
 
 const ROAD_ROWS = [8, 9, 10, 11, 12];
 const RIVER_ROWS = [1, 2, 3, 4, 5, 6];
+const DIVIDER_ROWS = [...ROAD_ROWS, ...RIVER_ROWS];
+const LANE_DASH: [number, number] = [10, 10];
 
 const ROAD_SPEED_MIN = 1.5;
 const ROAD_SPEED_MAX = 4;
@@ -203,12 +206,28 @@ export function createFroggerEngine(
   skin: SkinId
 ): FroggerEngineHandle {
   const ctx = getOpaqueContext2D(canvas);
+  // El HUD nunca cambia de tipografía: se fija una vez en vez de reasignarla
+  // en cada frame dentro de `drawHud`.
+  ctx.font = "16px monospace";
+  ctx.textBaseline = "middle";
   const bgLayer: Layer = createLayer(CANVAS_W, CANVAS_H);
 
   // ── Estado del juego ────────────────────────────────────────────────────
   let lanes: Lane[] = buildLanes(1);
   let level = 1;
   let score = 0;
+  let scoreText = `SCORE ${String(score).padStart(6, "0")}`;
+  let levelText = `LVL ${String(level).padStart(2, "0")}`;
+  function setScore(next: number) {
+    score = next;
+    scoreText = `SCORE ${String(score).padStart(6, "0")}`;
+    callbacks.onScoreChange(score);
+  }
+  function setLevel(next: number) {
+    level = next;
+    levelText = `LVL ${String(level).padStart(2, "0")}`;
+    callbacks.onLevelChange(level);
+  }
   let lives = INITIAL_LIVES;
   let goals: boolean[] = new Array(GOAL_COUNT).fill(false);
   let bestRowReached = ROW_START;
@@ -272,6 +291,7 @@ export function createFroggerEngine(
     if (lives <= 0) {
       callbacks.onLivesChange(0);
       gameOver = true;
+      gameLoop.setRunning(false);
       callbacks.onGameOver(score);
       return;
     }
@@ -280,8 +300,7 @@ export function createFroggerEngine(
   }
 
   function completeRound() {
-    level += 1;
-    callbacks.onLevelChange(level);
+    setLevel(level + 1);
     goals = new Array(GOAL_COUNT).fill(false);
     bestRowReached = ROW_START;
     lanes = buildLanes(level);
@@ -294,8 +313,7 @@ export function createFroggerEngine(
   function resolveLanding() {
     if (frog.row < bestRowReached) {
       bestRowReached = frog.row;
-      score += POINTS_PER_ADVANCE;
-      callbacks.onScoreChange(score);
+      setScore(score + POINTS_PER_ADVANCE);
     }
 
     if (frog.row === ROW_GOALS) {
@@ -306,12 +324,13 @@ export function createFroggerEngine(
       }
       goals[goalIndex] = true;
       bgLayer.invalidate();
-      score +=
-        POINTS_PER_GOAL + Math.floor(roundTimer / 1000) * TIME_BONUS_PER_SEC;
-      callbacks.onScoreChange(score);
+      setScore(
+        score +
+          POINTS_PER_GOAL +
+          Math.floor(roundTimer / 1000) * TIME_BONUS_PER_SEC
+      );
       if (goals.every(Boolean)) {
-        score += POINTS_PER_ROUND;
-        callbacks.onScoreChange(score);
+        setScore(score + POINTS_PER_ROUND);
         completeRound();
       } else {
         respawnFrogAtStart();
@@ -422,27 +441,37 @@ export function createFroggerEngine(
   // sugiera mirando solo hasta acá).
   let pal = paletteFor(skin);
 
-  /** `rgba(...)` de la tortuga compuesto al vuelo: su alpha es dinámico. */
-  function turtleColor(alpha: number): string {
+  /** Los dos `rgba()` de la tortuga (visible/sumergida): se recomputan solo
+   * en `setSkin`, no una vez por tortuga y por frame. */
+  let turtleColorFull = "";
+  let turtleColorSubmerged = "";
+  function computeTurtleColors() {
     const [r, g, b] = pal.turtle;
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    turtleColorFull = `rgba(${r}, ${g}, ${b}, 1)`;
+    turtleColorSubmerged = `rgba(${r}, ${g}, ${b}, 0.25)`;
   }
+  computeTurtleColors();
 
-  function glowOn(
+  // `beginGlowOn`/`endGlowOn` en vez de un `glow(color, blur, closure)`: la
+  // versión con closure asignaba una función nueva en cada llamada — con
+  // ~15 sitios de dibujo por frame eso es una asignación evitable por frame.
+  function beginGlowOn(
     context: CanvasRenderingContext2D,
     color: string,
-    blur: number,
-    paint: () => void
+    blur: number
   ) {
     context.save();
     context.shadowColor = color;
     context.shadowBlur = blur;
-    paint();
+  }
+  function endGlowOn(context: CanvasRenderingContext2D) {
     context.restore();
   }
-
-  function glow(color: string, blur: number, paint: () => void) {
-    glowOn(ctx, color, blur, paint);
+  function beginGlow(color: string, blur: number) {
+    beginGlowOn(ctx, color, blur);
+  }
+  function endGlow() {
+    endGlowOn(ctx);
   }
 
   function zoneColor(row: number): string {
@@ -471,26 +500,26 @@ export function createFroggerEngine(
       const x = startCol * CELL;
       const y = ROW_GOALS * CELL;
       const w = GOAL_WIDTH_COLS * CELL;
-      glowOn(bctx, pal.goalBorder, 6, () => {
-        bctx.strokeStyle = pal.goalBorder;
-        bctx.lineWidth = 2;
-        bctx.strokeRect(x + 2, y + 2, w - 4, CELL - 4);
-      });
+      beginGlowOn(bctx, pal.goalBorder, 6);
+      bctx.strokeStyle = pal.goalBorder;
+      bctx.lineWidth = 2;
+      bctx.strokeRect(x + 2, y + 2, w - 4, CELL - 4);
+      endGlowOn(bctx);
       if (goals[i]) {
-        glowOn(bctx, pal.goalFilled, 8, () => {
-          bctx.fillStyle = pal.goalFilled;
-          bctx.beginPath();
-          bctx.ellipse(x + w / 2, y + CELL / 2, 10, 8, 0, 0, Math.PI * 2);
-          bctx.fill();
-        });
+        beginGlowOn(bctx, pal.goalFilled, 8);
+        bctx.fillStyle = pal.goalFilled;
+        bctx.beginPath();
+        bctx.ellipse(x + w / 2, y + CELL / 2, 10, 8, 0, 0, Math.PI * 2);
+        bctx.fill();
+        endGlowOn(bctx);
       }
     }
 
     bctx.save();
     bctx.strokeStyle = pal.laneLine;
     bctx.lineWidth = 2;
-    bctx.setLineDash([10, 10]);
-    for (const row of [...ROAD_ROWS, ...RIVER_ROWS]) {
+    bctx.setLineDash(LANE_DASH);
+    for (const row of DIVIDER_ROWS) {
       const y = row * CELL + CELL / 2;
       bctx.beginPath();
       bctx.moveTo(0, y);
@@ -508,28 +537,28 @@ export function createFroggerEngine(
     const y = row * CELL;
     if (e.type === "car" || e.type === "truck") {
       const color = pal.cars[carColorIndex(e)];
-      glow(color, 10, () => {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
+      beginGlow(color, 10);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.roundRect(e.col + 2, y + 6, e.width - 4, CELL - 12, 4);
+      ctx.stroke();
+      if (e.type === "truck") {
         ctx.beginPath();
-        ctx.roundRect(e.col + 2, y + 6, e.width - 4, CELL - 12, 4);
+        ctx.moveTo(e.col + e.width - 14, y + 6);
+        ctx.lineTo(e.col + e.width - 14, y + CELL - 6);
         ctx.stroke();
-        if (e.type === "truck") {
-          ctx.beginPath();
-          ctx.moveTo(e.col + e.width - 14, y + 6);
-          ctx.lineTo(e.col + e.width - 14, y + CELL - 6);
-          ctx.stroke();
-        }
-      });
+      }
+      endGlow();
     } else if (e.type === "log") {
       // El contorno conserva el blur; el veteado interior se dibuja plano
       // (sin `shadowBlur`) porque es, por lejos, el mayor volumen de
       // operaciones con blur del motor y el cambio es imperceptible.
-      glow(pal.log, 6, () => {
-        ctx.strokeStyle = pal.log;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(e.col + 1, y + 8, e.width - 2, CELL - 16);
-      });
+      beginGlow(pal.log, 6);
+      ctx.strokeStyle = pal.log;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(e.col + 1, y + 8, e.width - 2, CELL - 16);
+      endGlow();
       ctx.strokeStyle = pal.log;
       ctx.lineWidth = 2;
       for (let lx = e.col + 10; lx < e.col + e.width - 4; lx += 14) {
@@ -539,24 +568,23 @@ export function createFroggerEngine(
         ctx.stroke();
       }
     } else {
-      const alpha = e.submerged ? 0.25 : 1;
       const groupCells = Math.round(e.width / CELL);
-      glow(turtleColor(1), e.submerged ? 0 : 12, () => {
-        ctx.fillStyle = turtleColor(alpha);
-        for (let i = 0; i < groupCells; i++) {
-          ctx.beginPath();
-          ctx.ellipse(
-            e.col + i * CELL + CELL / 2,
-            y + CELL / 2,
-            CELL * 0.42,
-            CELL * 0.32,
-            0,
-            0,
-            Math.PI * 2
-          );
-          ctx.fill();
-        }
-      });
+      beginGlow(turtleColorFull, e.submerged ? 0 : 12);
+      ctx.fillStyle = e.submerged ? turtleColorSubmerged : turtleColorFull;
+      for (let i = 0; i < groupCells; i++) {
+        ctx.beginPath();
+        ctx.ellipse(
+          e.col + i * CELL + CELL / 2,
+          y + CELL / 2,
+          CELL * 0.42,
+          CELL * 0.32,
+          0,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
+      }
+      endGlow();
     }
   }
 
@@ -568,12 +596,12 @@ export function createFroggerEngine(
     const cy = visualRow * CELL + CELL / 2;
     const hop = frog.animating ? Math.sin(Math.PI * t) * 6 : 0;
 
-    glow(pal.frog, 14, () => {
-      ctx.fillStyle = pal.frog;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy - hop, 14, 12, 0, 0, Math.PI * 2);
-      ctx.fill();
-    });
+    beginGlow(pal.frog, 14);
+    ctx.fillStyle = pal.frog;
+    ctx.beginPath();
+    ctx.ellipse(cx, cy - hop, 14, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    endGlow();
 
     ctx.fillStyle = pal.frogEye;
     ctx.beginPath();
@@ -588,45 +616,39 @@ export function createFroggerEngine(
   }
 
   function drawHud() {
-    ctx.font = "16px monospace";
-    ctx.textBaseline = "middle";
-
     ctx.textAlign = "left";
-    glow(pal.hudScoreGlow, 6, () => {
-      ctx.fillStyle = pal.hudScore;
-      ctx.fillText(`SCORE ${String(score).padStart(6, "0")}`, 8, CELL / 2);
-    });
+    beginGlow(pal.hudScoreGlow, 6);
+    ctx.fillStyle = pal.hudScore;
+    ctx.fillText(scoreText, 8, CELL / 2);
+    endGlow();
 
     ctx.textAlign = "center";
-    glow(pal.hudLevelGlow, 6, () => {
-      ctx.fillStyle = pal.hudLevel;
-      ctx.fillText(
-        `LVL ${String(level).padStart(2, "0")}`,
-        CANVAS_W / 2,
-        CELL / 2
-      );
-    });
+    beginGlow(pal.hudLevelGlow, 6);
+    ctx.fillStyle = pal.hudLevel;
+    ctx.fillText(levelText, CANVAS_W / 2, CELL / 2);
+    endGlow();
 
     ctx.textAlign = "right";
     for (let i = 0; i < lives; i++) {
-      glow(pal.lifeIcon, 8, () => {
-        ctx.fillStyle = pal.lifeIcon;
-        ctx.beginPath();
-        ctx.arc(CANVAS_W - 12 - i * 18, CELL / 2, 6, 0, Math.PI * 2);
-        ctx.fill();
-      });
+      beginGlow(pal.lifeIcon, 8);
+      ctx.fillStyle = pal.lifeIcon;
+      ctx.beginPath();
+      ctx.arc(CANVAS_W - 12 - i * 18, CELL / 2, 6, 0, Math.PI * 2);
+      ctx.fill();
+      endGlow();
     }
 
     const frac = Math.max(0, roundTimer / currentRoundMs);
     const timeColor =
       frac > 0.5 ? pal.timeOk : frac > 0.25 ? pal.timeWarn : pal.timeDanger;
-    glow(timeColor, 8, () => {
-      ctx.fillStyle = timeColor;
-      ctx.fillRect(0, 0, CANVAS_W * frac, 4);
-    });
+    beginGlow(timeColor, 8);
+    ctx.fillStyle = timeColor;
+    ctx.fillRect(0, 0, CANVAS_W * frac, 4);
+    endGlow();
   }
 
   function draw() {
+    callbacks.onFrame?.();
     if (bgLayer.consumeDirty()) paintBackgroundLayer();
     ctx.drawImage(bgLayer.canvas, 0, 0);
     for (const lane of lanes) {
@@ -640,35 +662,24 @@ export function createFroggerEngine(
   }
 
   // ── Loop principal ──────────────────────────────────────────────────────
-  let lastTime: number | null = null;
-  let rafId: number | null = null;
-
-  function loop(ts: number) {
-    rafId = requestAnimationFrame(loop);
-    callbacks.onFrame?.();
-    if (lastTime === null) {
-      lastTime = ts;
-      draw();
-      return;
-    }
-    const dt = ts - lastTime;
-    lastTime = ts;
-    if (!paused && !gameOver) update(dt);
-    draw();
-  }
+  // Corta el rAF de verdad en pausa y en game-over — no reprograma el frame
+  // para recién ahí hacer `return`, como hacía el loop manual anterior.
+  const gameLoop = createGameLoop({ update, draw });
 
   // ── Inicio ──────────────────────────────────────────────────────────────
   callbacks.onScoreChange(score);
   callbacks.onLivesChange(lives);
   callbacks.onLevelChange(level);
-  rafId = requestAnimationFrame(loop);
+  gameLoop.start();
 
   return {
     setPaused(p: boolean) {
       paused = p;
+      gameLoop.setRunning(!paused && !gameOver);
     },
     setSkin(next: SkinId) {
       pal = paletteFor(next);
+      computeTurtleColors();
       bgLayer.invalidate();
       // Repintado inmediato en vez de esperar al próximo frame: el jugador
       // suele tocar el selector con la partida en pausa, y el cambio de skin
@@ -681,7 +692,7 @@ export function createFroggerEngine(
       if (down) handleDirectionKey(code);
     },
     destroy() {
-      if (rafId !== null) cancelAnimationFrame(rafId);
+      gameLoop.stop();
       document.removeEventListener("keydown", onKeyDown);
     },
   };

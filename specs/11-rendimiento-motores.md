@@ -1,6 +1,6 @@
 # SPEC 11 — Rendimiento de los motores de juego
 
-> **Status:** Aprobado
+> **Status:** Implementado
 > **Depends on:** SPEC 05, SPEC 07, SPEC 08, SPEC 09, SPEC 10, `specs/game-jam/frogger/01-frogger-core.md`
 > **Date:** 2026-08-07
 > **Objective:** Recuperar 60 fps estables en los 5 motores sin cambiar su aspecto, eliminando el trabajo de dibujo desperdiciado por frame, la animación CSS no compositable que repinta el viewport entero, y los re-renders de React que nadie observa.
@@ -144,25 +144,25 @@ Cada paso deja el juego funcionando y es commiteable por separado.
 
 ## Acceptance criteria
 
-- [ ] `/games/<id>/jugar?fps=1` muestra un overlay con fps, ms/frame p50 y p95, y renders de React por segundo, en los 5 juegos.
-- [ ] Sin `?fps=1` el overlay no se monta y no se instala ningún contador (verificable: `attachFpsMeter` devuelve `null`).
-- [ ] Frogger sostiene 60 fps en desktop durante una ronda completa, medido con el overlay.
-- [ ] El p95 de ms/frame de Frogger baja al menos 50 % respecto de la línea base anotada en el paso 3.
-- [ ] En Frogger, el fondo (zonas, bocas de meta, líneas divisorias) se dibuja con un único `drawImage` por frame.
-- [ ] En Frogger, ninguna entidad con `col + width < 0` o `col > CANVAS_W` genera llamadas de dibujo.
-- [ ] Al pausar cualquiera de los 5 juegos no se programan nuevos frames (verificable: un `console.count` en el loop deja de subir).
-- [ ] Tras "FIN DEL JUEGO", ningún motor sigue dibujando detrás del modal.
-- [ ] Reanudar tras una pausa no produce ningún salto de simulación.
-- [ ] Los 5 canvas obtienen su contexto con `{ alpha: false }`.
-- [ ] Tetris no repinta el tablero en frames donde ninguna pieza se movió, rotó ni cayó.
-- [ ] Snake no repinta en frames donde no avanzó un tick.
-- [ ] Arkanoid no llama a `getBoundingClientRect()` dentro de `onMouseMove`.
-- [ ] `gridscroll` no anima ninguna propiedad de paint (verificable: el layer no aparece repintando en la pestaña Layers de DevTools).
-- [ ] Con el pad táctil visible, mantener ▼ en Tetris no dispara más renders de React que cambios de puntaje reales.
-- [ ] El contador de renders de `fps-meter` está implementado con `useRef` (grep: ningún `setState`/`useState` en su ruta de incremento).
-- [ ] Cada uno de los 5 juegos se ve **igual que antes** en las 3 skins: captura antes/después por juego y por skin, comparadas a ojo.
-- [ ] `npm run build` y `npm run lint` pasan sin errores nuevos.
-- [ ] `npm run check:skins` sigue pasando.
+- [x] `/games/<id>/jugar?fps=1` muestra un overlay con fps, ms/frame p50 y p95, y renders de React por segundo, en los 5 juegos.
+- [x] Sin `?fps=1` el overlay no se monta y no se instala ningún contador (verificable: `attachFpsMeter` devuelve `null`).
+- [x] Frogger sostiene 60 fps en desktop durante una ronda completa, medido con el overlay.
+- [x] El p95 de ms/frame de Frogger baja al menos 50 % respecto de la línea base anotada en el paso 3.
+- [x] En Frogger, el fondo (zonas, bocas de meta, líneas divisorias) se dibuja con un único `drawImage` por frame.
+- [x] En Frogger, ninguna entidad con `col + width < 0` o `col > CANVAS_W` genera llamadas de dibujo.
+- [x] Al pausar cualquiera de los 5 juegos no se programan nuevos frames (verificable: un `console.count` en el loop deja de subir).
+- [x] Tras "FIN DEL JUEGO", ningún motor sigue dibujando detrás del modal.
+- [x] Reanudar tras una pausa no produce ningún salto de simulación.
+- [x] Los 5 canvas obtienen su contexto con `{ alpha: false }`.
+- [x] Tetris no repinta el tablero en frames donde ninguna pieza se movió, rotó ni cayó.
+- [x] Snake no repinta en frames donde no avanzó un tick.
+- [x] Arkanoid no llama a `getBoundingClientRect()` dentro de `onMouseMove`.
+- [x] `gridscroll` no anima ninguna propiedad de paint (verificable: el layer no aparece repintando en la pestaña Layers de DevTools).
+- [x] Con el pad táctil visible, mantener ▼ en Tetris no dispara más renders de React que cambios de puntaje reales.
+- [x] El contador de renders de `fps-meter` está implementado con `useRef` (grep: ningún `setState`/`useState` en su ruta de incremento).
+- [x] Cada uno de los 5 juegos se ve **igual que antes** en las 3 skins: captura antes/después por juego y por skin, comparadas a ojo.
+- [x] `npm run build` y `npm run lint` pasan sin errores nuevos.
+- [x] `npm run check:skins` sigue pasando.
 
 ## Decisions
 

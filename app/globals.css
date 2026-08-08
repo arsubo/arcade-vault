@@ -1203,6 +1203,14 @@ a {
   background: var(--skin-screen-bg);
   border-radius: 12px / 28px;
   overflow: hidden;
+  /* El `mix-blend-mode: multiply` de `::after` (scanlines) obliga a
+     recomponer contra todo lo que haya debajo en el mismo contexto de
+     apilamiento. `isolation` acota ese "debajo" a este elemento en vez del
+     documento entero, y `contain: paint` acota el área de invalidación al
+     box de `.crt-screen` — clave porque el `<canvas>` de adentro cambia
+     cada frame. */
+  isolation: isolate;
+  contain: paint;
   box-shadow:
     inset 0 0 60px rgba(0, 0, 0, 0.9),
     inset 0 0 20px rgba(var(--skin-accent-rgb), 0.15);

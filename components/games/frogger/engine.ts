@@ -10,6 +10,7 @@
 // duplicada.
 
 import { GAME_PALETTES, type SkinId } from "@/lib/skins";
+import { createLayer, getOpaqueContext2D, type Layer } from "@/lib/game-canvas";
 import type { GameEngineHandle } from "../types";
 import type { FroggerPalette } from "./palette";
 
@@ -201,8 +202,8 @@ export function createFroggerEngine(
   callbacks: FroggerCallbacks,
   skin: SkinId
 ): FroggerEngineHandle {
-  const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-  if (!ctx) throw new Error("No se pudo obtener el contexto 2D del canvas.");
+  const ctx = getOpaqueContext2D(canvas);
+  const bgLayer: Layer = createLayer(CANVAS_W, CANVAS_H);
 
   // ── Estado del juego ────────────────────────────────────────────────────
   let lanes: Lane[] = buildLanes(1);
@@ -287,6 +288,7 @@ export function createFroggerEngine(
     currentRoundMs = roundMsForLevel(level);
     roundTimer = currentRoundMs;
     respawnFrogAtStart();
+    bgLayer.invalidate();
   }
 
   function resolveLanding() {
@@ -303,6 +305,7 @@ export function createFroggerEngine(
         return;
       }
       goals[goalIndex] = true;
+      bgLayer.invalidate();
       score +=
         POINTS_PER_GOAL + Math.floor(roundTimer / 1000) * TIME_BONUS_PER_SEC;
       callbacks.onScoreChange(score);
@@ -425,12 +428,21 @@ export function createFroggerEngine(
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
-  function glow(color: string, blur: number, paint: () => void) {
-    ctx.save();
-    ctx.shadowColor = color;
-    ctx.shadowBlur = blur;
+  function glowOn(
+    context: CanvasRenderingContext2D,
+    color: string,
+    blur: number,
+    paint: () => void
+  ) {
+    context.save();
+    context.shadowColor = color;
+    context.shadowBlur = blur;
     paint();
-    ctx.restore();
+    context.restore();
+  }
+
+  function glow(color: string, blur: number, paint: () => void) {
+    glowOn(ctx, color, blur, paint);
   }
 
   function zoneColor(row: number): string {
@@ -440,10 +452,16 @@ export function createFroggerEngine(
     return pal.roadBg;
   }
 
-  function drawBackground() {
+  /**
+   * Fondo estático (zonas, bocas de meta, líneas divisorias) cambia solo en
+   * `setSkin`, `completeRound` y captura de meta — se pinta una vez en
+   * `bgLayer` y el frame a frame se limita a un `drawImage`.
+   */
+  function paintBackgroundLayer() {
+    const bctx = bgLayer.ctx;
     for (let row = 0; row < ROWS; row++) {
-      ctx.fillStyle = zoneColor(row);
-      ctx.fillRect(0, row * CELL, CANVAS_W, CELL);
+      bctx.fillStyle = zoneColor(row);
+      bctx.fillRect(0, row * CELL, CANVAS_W, CELL);
     }
 
     // Bocas destino: borde dorado brillante; huecos entre bocas quedan con el
@@ -453,35 +471,33 @@ export function createFroggerEngine(
       const x = startCol * CELL;
       const y = ROW_GOALS * CELL;
       const w = GOAL_WIDTH_COLS * CELL;
-      glow(pal.goalBorder, 6, () => {
-        ctx.strokeStyle = pal.goalBorder;
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x + 2, y + 2, w - 4, CELL - 4);
+      glowOn(bctx, pal.goalBorder, 6, () => {
+        bctx.strokeStyle = pal.goalBorder;
+        bctx.lineWidth = 2;
+        bctx.strokeRect(x + 2, y + 2, w - 4, CELL - 4);
       });
       if (goals[i]) {
-        glow(pal.goalFilled, 8, () => {
-          ctx.fillStyle = pal.goalFilled;
-          ctx.beginPath();
-          ctx.ellipse(x + w / 2, y + CELL / 2, 10, 8, 0, 0, Math.PI * 2);
-          ctx.fill();
+        glowOn(bctx, pal.goalFilled, 8, () => {
+          bctx.fillStyle = pal.goalFilled;
+          bctx.beginPath();
+          bctx.ellipse(x + w / 2, y + CELL / 2, 10, 8, 0, 0, Math.PI * 2);
+          bctx.fill();
         });
       }
     }
-  }
 
-  function drawLaneDividers() {
-    ctx.save();
-    ctx.strokeStyle = pal.laneLine;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 10]);
+    bctx.save();
+    bctx.strokeStyle = pal.laneLine;
+    bctx.lineWidth = 2;
+    bctx.setLineDash([10, 10]);
     for (const row of [...ROAD_ROWS, ...RIVER_ROWS]) {
       const y = row * CELL + CELL / 2;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(CANVAS_W, y);
-      ctx.stroke();
+      bctx.beginPath();
+      bctx.moveTo(0, y);
+      bctx.lineTo(CANVAS_W, y);
+      bctx.stroke();
     }
-    ctx.restore();
+    bctx.restore();
   }
 
   function carColorIndex(e: Entity): number {
@@ -606,8 +622,8 @@ export function createFroggerEngine(
   }
 
   function draw() {
-    drawBackground();
-    drawLaneDividers();
+    if (bgLayer.consumeDirty()) paintBackgroundLayer();
+    ctx.drawImage(bgLayer.canvas, 0, 0);
     for (const lane of lanes) {
       for (const e of lane.entities) drawEntity(e, lane.row);
     }
@@ -645,6 +661,7 @@ export function createFroggerEngine(
     },
     setSkin(next: SkinId) {
       pal = paletteFor(next);
+      bgLayer.invalidate();
       // Repintado inmediato en vez de esperar al próximo frame: el jugador
       // suele tocar el selector con la partida en pausa, y el cambio de skin
       // repinta en vivo — nunca reinicia ni altera el estado del juego.

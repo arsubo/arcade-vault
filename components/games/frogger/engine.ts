@@ -34,11 +34,14 @@ const RIVER_ROWS = [1, 2, 3, 4, 5, 6];
 const DIVIDER_ROWS = [...ROAD_ROWS, ...RIVER_ROWS];
 const LANE_DASH: [number, number] = [10, 10];
 
-const ROAD_SPEED_MIN = 1.5;
-const ROAD_SPEED_MAX = 4;
-const RIVER_SPEED_MIN = 1;
-const RIVER_SPEED_MAX = 3;
-const LEVEL_SPEED_FACTOR = 1.15;
+// Velocidad base pensada para que el nivel 1 sea cruzable con margen; sube
+// nivel a nivel vía `levelSpeedMultiplier` (a nivel 5 iguala aprox. la
+// velocidad que tenía el viejo nivel 1, y sigue subiendo desde ahí).
+const ROAD_SPEED_MIN = 0.8;
+const ROAD_SPEED_MAX = 2;
+const RIVER_SPEED_MIN = 0.6;
+const RIVER_SPEED_MAX = 1.6;
+const LEVEL_SPEED_FACTOR = 1.18;
 
 const ROAD_MIN_GAP_CELLS = 2;
 const RIVER_MIN_GAP_CELLS = 1;
